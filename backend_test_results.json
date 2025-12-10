@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-12-10T10:44:35.474507",
+  "total_tests": 8,
+  "passed_tests": 8,
+  "success_rate": "100.0%",
+  "test_details": [
+    {
+      "test": "User Registration",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Current User",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Training Modules",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get User Analytics",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Update User Analytics",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Analyze Evaluation",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Evaluation History",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Streak Data",
+      "success": true,
+      "details": ""
+    }
+  ]
+}
