@@ -35,6 +35,56 @@ export const Dashboard = () => {
     const sum = data.reduce((acc, item) => acc + item.value, 0);
     return (sum / data.length).toFixed(1);
   };
+  const generateFeedback = (analytics) => {
+  const avgWpm = calculateAverage(analytics.wpm);
+  const avgFillers = calculateAverage(analytics.fillers);
+  const avgEye = calculateAverage(analytics.eye_gaze);
+
+  const feedback = [];
+
+  // -------------------
+  // SPEED / RHYTHM
+  // -------------------
+  if (avgWpm < 100) {
+    feedback.push({
+      type: "pace",
+      message: "Your speaking pace is quite slow. Focus on rhythm and flow.",
+      action: "Practice speaking fluency exercises."
+    });
+  } else if (avgWpm > 170) {
+    feedback.push({
+      type: "pace",
+      message: "You're speaking too fast. Slow down for clarity.",
+      action: "Practice controlled breathing and pauses."
+    });
+  }
+
+  // -------------------
+  // FILLERS
+  // -------------------
+  if (avgFillers > 5) {
+    feedback.push({
+      type: "fillers",
+      message: "You are using too many filler words.",
+      action: "Do targeted filler reduction drills."
+    });
+  }
+
+  // -------------------
+  // EYE CONTACT
+  // -------------------
+  if (avgEye < 60) {
+    feedback.push({
+      type: "eye",
+      message: "Your eye contact is low.",
+      action: "Practice speaking while maintaining camera focus."
+    });
+  }
+
+    return feedback;
+  };
+
+
 
   const summaryCards = [
     {
@@ -63,6 +113,8 @@ export const Dashboard = () => {
     },
   ];
 
+
+  const feedbackList = generateFeedback(analytics);
   if (loading) {
     return (
       <Layout>
@@ -81,6 +133,7 @@ export const Dashboard = () => {
           <p className="text-muted-foreground">Track your communication skills progress</p>
         </div>
 
+        
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {summaryCards.map((card, index) => {
@@ -102,6 +155,29 @@ export const Dashboard = () => {
             );
           })}
         </div>
+
+          {/* Feedback Section */}
+          {feedbackList.length > 0 && (
+            <div className="mb-8 bg-card border border-border rounded-lg p-6">
+              <h3 className="text-lg font-serif font-medium mb-4">
+                AI Coaching Feedback
+              </h3>
+
+              <div className="space-y-4">
+                {feedbackList.map((item, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-lg border border-border bg-muted/30"
+                  >
+                    <p className="font-medium mb-1">{item.message}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.action}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

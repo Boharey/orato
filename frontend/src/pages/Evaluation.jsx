@@ -74,32 +74,39 @@ export const Evaluation = () => {
   };
 
   const analyzeRecording = async () => {
-    if (!recordedBlob) return;
+  if (!recordedBlob) return;
 
-    setAnalyzing(true);
+  setAnalyzing(true);
 
-    try {
-      // Convert blob to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(recordedBlob);
-      reader.onloadend = async () => {
-        const base64data = reader.result.split(',')[1];
+  try {
+    // convert blob → file (IMPORTANT)
+    const file = new File([recordedBlob], "recording.webm", {
+      type: "video/webm",
+    });
 
-        // Send for analysis
-        const response = await axios.post(`${API_URL}/evaluation/analyze`, {
-          video_data: base64data
-        });
+    const formData = new FormData();
+    formData.append("video", file); // MUST match FastAPI parameter name
 
-        setResults(response.data);
-        toast.success('Analysis complete!');
-      };
-    } catch (error) {
-      console.error('Error analyzing recording:', error);
-      toast.error('Analysis failed');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+    const response = await axios.post(
+      `${API_URL}/evaluation/analyze`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    setResults(response.data);
+    toast.success("Analysis complete!");
+  } catch (error) {
+    console.error("Error analyzing recording:", error);
+    toast.error("Analysis failed");
+  } finally {
+    setAnalyzing(false);
+  }
+};
 
   const resetRecording = () => {
     setRecordedBlob(null);
