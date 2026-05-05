@@ -27,65 +27,84 @@ export const Evaluation = () => {
   }, [stream]);
 
   const startRecording = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
+  try {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: true, 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: 48000,
+        channelCount: 1
+      }
+    });
+    
+    setStream(mediaStream);
+    videoRef.current.srcObject = mediaStream;
+    videoRef.current.play();
+
+    // Check supported mimeType (important for stability)
+    let options = {};
+    if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
+      options = {
+        mimeType: "video/webm;codecs=vp8,opus",
+        audioBitsPerSecond: 128000
+      };
+    } else if (MediaRecorder.isTypeSupported("video/webm")) {
+      options = {
+        mimeType: "video/webm",
+        audioBitsPerSecond: 128000
+      };
+    }
+
+    const mediaRecorder = new MediaRecorder(mediaStream, options);
+    mediaRecorderRef.current = mediaRecorder;
+    chunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunksRef.current.push(e.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      setRecordedBlob(blob);
       
-      setStream(mediaStream);
-      videoRef.current.srcObject = mediaStream;
-      videoRef.current.play();
+      // Stop all tracks
+      mediaStream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    };
 
-      const mediaRecorder = new MediaRecorder(mediaStream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
+    mediaRecorder.start();
+    setRecording(true);
+    toast.success('Recording started');
+  } catch (error) {
+    console.error('Error starting recording:', error);
+    toast.error('Failed to access camera/microphone');
+  }
+};
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
+const stopRecording = () => {
+  if (mediaRecorderRef.current && recording) {
+    mediaRecorderRef.current.stop();
+    setRecording(false);
+    toast.success('Recording stopped');
+  }
+};
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-        setRecordedBlob(blob);
-        
-        // Stop all tracks
-        mediaStream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      };
-
-      mediaRecorder.start();
-      setRecording(true);
-      toast.success('Recording started');
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Failed to access camera/microphone');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && recording) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
-      toast.success('Recording stopped');
-    }
-  };
-
-  const analyzeRecording = async () => {
+const analyzeRecording = async () => {
   if (!recordedBlob) return;
 
   setAnalyzing(true);
 
   try {
-    // convert blob → file (IMPORTANT)
     const file = new File([recordedBlob], "recording.webm", {
       type: "video/webm",
     });
 
     const formData = new FormData();
-    formData.append("video", file); // MUST match FastAPI parameter name
+    formData.append("video", file);
 
     const response = await axios.post(
       `${API_URL}/evaluation/analyze`,
@@ -108,22 +127,22 @@ export const Evaluation = () => {
   }
 };
 
-  const resetRecording = () => {
-    setRecordedBlob(null);
-    setResults(null);
-    if (videoRef.current) {
-      videoRef.current.src = null;
-      videoRef.current.srcObject = null;
-    }
-  };
+const resetRecording = () => {
+  setRecordedBlob(null);
+  setResults(null);
+  if (videoRef.current) {
+    videoRef.current.src = null;
+    videoRef.current.srcObject = null;
+  }
+};
 
-  const playRecording = () => {
-    if (recordedBlob && videoRef.current) {
-      const url = URL.createObjectURL(recordedBlob);
-      videoRef.current.src = url;
-      videoRef.current.play();
-    }
-  };
+const playRecording = () => {
+  if (recordedBlob && videoRef.current) {
+    const url = URL.createObjectURL(recordedBlob);
+    videoRef.current.src = url;
+    videoRef.current.play();
+  }
+};
 
   return (
     <Layout>

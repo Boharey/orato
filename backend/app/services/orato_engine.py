@@ -47,7 +47,7 @@ def analyze_audio(file_path: str):
     # -------------------------
     pauses = 0
     for i in range(1, len(segments)):
-        if (segments[i].start - segments[i-1].end) > 0.7:
+        if (segments[i].start - segments[i-1].end) > 0.5:
             pauses += 1
 
     # -------------------------
