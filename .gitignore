@@ -12,6 +12,7 @@ venv/
 node_modules/
 build/
 dist/
+.eslintcache
 
 # -------------------------
 # Environment & Secrets
@@ -70,3 +71,19 @@ uploads/
 *.bson
 *.archivefrontend/node_modules/.cache/default-development/4.pack
 frontend/node_modules/.cache/default-development/4.pack
+
+
+# -------------------------
+# Python Tools (uv / pyenv)
+# -------------------------
+.python-version
+uv.lock
+# Note: Keep pyproject.toml as it defines your project dependencies
+
+# -------------------------
+# ML Models / Large Binaries
+# -------------------------
+*.task
+*.models
+*.weights
+backend/app/models/face_landmarker.task

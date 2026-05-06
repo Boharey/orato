@@ -13,3 +13,9 @@ class EvaluationResult(BaseModel):
     confidence_score: float
     video_data: Optional[str] = None
     created_at: str
+
+    # New fields 
+    transcript: Optional[str] = None
+    blink_count: Optional[int] = None
+    attention_score: Optional[float] = None
+    gaze_on_screen_pct: Optional[float] = None

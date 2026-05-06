@@ -22,3 +22,11 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     token: str
     user: UserResponse
+
+    # Stored in DB under users collection
+class GazeCalibration(BaseModel):
+    neutral_horiz: float
+    neutral_vert: float
+    neutral_pitch: float
+    neutral_yaw: float
+    calibrated: bool = True
