@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Layout } from '../components/Layout';
+import { DashboardCard, DASHBOARD_STYLES } from '../components/dashboard';
 import { StreakCalendar } from '../components/StreakCalendar';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Zap, Eye, Award } from 'lucide-react';
@@ -127,39 +128,33 @@ export const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="p-8 max-w-[1600px] mx-auto" data-testid="dashboard-page">
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-light tracking-tight mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Track your communication skills progress</p>
+      <style>{DASHBOARD_STYLES}</style>
+      <div className="db-root px-4 sm:px-8 py-8 sm:py-12 max-w-[1600px] mx-auto" data-testid="dashboard-page">
+        <div className="mb-12 db-h">
+          <h1 className="db-serif text-4xl md:text-5xl font-light tracking-tight text-foreground mb-3">Dashboard</h1>
+          <p className="text-muted-foreground text-base">Track your communication skills progress</p>
         </div>
 
         
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {summaryCards.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={index}
-                data-testid={`summary-card-${index}`}
-                className="bg-card border border-border rounded-lg p-6"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${card.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold mb-1">{card.value}</p>
-                <p className="text-sm text-muted-foreground">{card.title}</p>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-7 mb-12">
+          {summaryCards.map((card, index) => (
+            <DashboardCard
+              key={index}
+              icon={card.icon}
+              title={card.title}
+              value={card.value}
+              color={card.color}
+              index={index}
+              testId={`summary-card-${index}`}
+            />
+          ))}
         </div>
 
           {/* Feedback Section */}
           {feedbackList.length > 0 && (
-            <div className="mb-8 bg-card border border-border rounded-lg p-6">
-              <h3 className="text-lg font-serif font-medium mb-4">
+            <div className="mb-12 bg-card border border-border rounded-lg p-6 md:p-8 db-f1">
+              <h3 className="db-serif text-xl font-semibold text-foreground mb-6">
                 AI Coaching Feedback
               </h3>
 
@@ -167,10 +162,10 @@ export const Dashboard = () => {
                 {feedbackList.map((item, index) => (
                   <div
                     key={index}
-                    className="p-4 rounded-lg border border-border bg-muted/30"
+                    className="p-5 rounded-lg border border-border/50 bg-muted/40 hover:bg-muted/60 transition-colors duration-200"
                   >
-                    <p className="font-medium mb-1">{item.message}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-semibold text-foreground mb-2">{item.message}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {item.action}
                     </p>
                   </div>
@@ -180,10 +175,10 @@ export const Dashboard = () => {
           )}
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
           {/* WPM Chart */}
-          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6" data-testid="wpm-chart">
-            <h3 className="text-lg font-serif font-medium mb-6">Words Per Minute Trend</h3>
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6 md:p-8 hover:border-border/80 transition-all duration-200 db-c1" data-testid="wpm-chart">
+            <h3 className="db-serif text-xl font-semibold text-foreground mb-6">Words Per Minute Trend</h3>
             {analytics.wpm && analytics.wpm.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={analytics.wpm}>
@@ -208,13 +203,13 @@ export const Dashboard = () => {
           </div>
 
           {/* Streak Calendar */}
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className="bg-card border border-border rounded-lg p-6 md:p-8 hover:border-border/80 transition-all duration-200 db-c2">
             <StreakCalendar />
           </div>
 
           {/* Filler Count Chart */}
-          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6" data-testid="filler-chart">
-            <h3 className="text-lg font-serif font-medium mb-6">Filler Words Trend</h3>
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6 md:p-8 hover:border-border/80 transition-all duration-200 db-c3" data-testid="filler-chart">
+            <h3 className="db-serif text-xl font-semibold text-foreground mb-6">Filler Words Trend</h3>
             {analytics.fillers && analytics.fillers.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={analytics.fillers}>
@@ -239,8 +234,8 @@ export const Dashboard = () => {
           </div>
 
           {/* Eye Gaze Chart */}
-          <div className="bg-card border border-border rounded-lg p-6" data-testid="eye-gaze-chart">
-            <h3 className="text-lg font-serif font-medium mb-6">Eye Contact %</h3>
+          <div className="bg-card border border-border rounded-lg p-6 md:p-8 hover:border-border/80 transition-all duration-200 db-c4" data-testid="eye-gaze-chart">
+            <h3 className="db-serif text-xl font-semibold text-foreground mb-6">Eye Contact %</h3>
             {analytics.eye_gaze && analytics.eye_gaze.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={analytics.eye_gaze}>
