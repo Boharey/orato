@@ -3,7 +3,47 @@ name = "backend"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "mediapipe>=0.10.9,<0.10.35",
+    # -- Directly used in your code --
+    "fastapi==0.110.1",
+    "uvicorn>=0.25.0",
+    "starlette==0.37.2",                    # pinned to match fastapi's requirement
+    "pydantic>=2.6.0",
+    "pydantic-core>=2.16.0",
+    "email-validator>=2.3.0",
+    "bcrypt>=4.1.3",
+    "cryptography>=42.0.0",
+    "python-jose>=3.3.0",
+    "passlib>=1.7.4",
+    "PyJWT>=2.8.0",
+    "motor>=3.3.1",
+    "pymongo>=4.5.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+    "mediapipe>=0.10.9,<0.10.35",           # your face landmarking version cap
+    "opencv-python-headless>=4.9.0",
+    "numpy>=1.24.0,<2.0.0",
+    "faster-whisper>=1.0.0",
+    "ctranslate2>=4.4.0",
+    "tokenizers>=0.19.0",
+    "onnxruntime>=1.17.0,<1.24",
+    "boto3>=1.43.2",
     "matplotlib>=3.8.0,<3.10.0",
     "contourpy>=1.2.0,<1.3.0",
+    "pandas>=2.2.0",
+    "cachetools>=5.3.0",                    # new addition
+    "pytest>=8.0.0",
+    "protobuf>=4.25.0,<5.0.0",
+    "flatbuffers>=23.5.26",
+    "sounddevice>=0.4.6",
+    "requests>=2.31.0",
+    "huggingface_hub>=0.22.0",
+    "tqdm>=4.66.0",
+    "PyYAML>=6.0.1",
+    "rich>=13.7.0",
+    "python-dateutil>=2.9.0",
+    "dnspython>=2.8.0",                    # if you use MongoDB SRV connection; else can remove
+    "requests-oauthlib>=2.0.0",            # if needed for OAuth; else can remove
+    "setuptools>=69.0.0",                  # build tool, not runtime but listed previously
+    "typing_extensions>=4.10.0",           # sometimes used directly
 ]

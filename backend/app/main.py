@@ -1,7 +1,13 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.routes import auth, training, analytics, evaluation, streak, calibration
+
+
+from app.routes import auth, training, analytics, evaluation, streak, calibration,scenarios
+
 
 app = FastAPI()
 
@@ -11,6 +17,7 @@ app.include_router(analytics.router, prefix="/api")
 app.include_router(evaluation.router, prefix="/api")
 app.include_router(streak.router, prefix="/api")
 app.include_router(calibration.router, prefix="/api")
+app.include_router(scenarios.router, prefix="/api") 
 
 app.add_middleware(
     CORSMiddleware,

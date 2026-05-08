@@ -12,6 +12,7 @@ import { Evaluation } from './pages/Evaluation';
 import { Training } from './pages/Training';
 import { TrainingModule } from './pages/TrainingModule';
 import { Profile } from './pages/Profile';
+import { TechniquePage } from './pages/Techniquepage';
 
 function App() {
   return (
@@ -56,6 +57,17 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+           path="/training/:moduleId/:techniqueSlug" 
+           element=
+           {
+            <ProtectedRoute>
+              <TechniquePage />
+            </ProtectedRoute>
+           } 
+           />
+
           <Route
             path="/profile"
             element={
