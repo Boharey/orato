@@ -25,138 +25,71 @@ async def convert_to_wav(input_path: str, output_path: str):
     await process.communicate()
 
 
-def compute_combined_score(audio: dict, video: dict, duration_seconds: float = 60.0) -> dict:
-    """
-    Combines audio + video signals into a single confidence score and per-metric grades.
-
-    Grades: "good" | "warning" | "bad"
-    Weights: wpm 25%, fillers 25%, eye_contact 30%, blink_rate 20%
-    """
-
+def compute_combined_score(audio: dict, video: dict) -> dict:
     scores = {}
     grades = {}
 
-    # ── WPM (smooth scoring around ideal pace) ───────────────────────────────
     wpm = audio.get("wpm", 0)
-    ideal_wpm = 140
-    distance = abs(wpm - ideal_wpm)
+    if 120 <= wpm <= 160:   scores["wpm"] = 100; grades["wpm"] = "good"
+    elif 100 <= wpm < 120 or 160 < wpm <= 180: scores["wpm"] = 70; grades["wpm"] = "warning"
+    else:                   scores["wpm"] = 40;  grades["wpm"] = "bad"
 
-    # Lose 1.25 points per WPM away from ideal
-    score = max(0, 100 - (distance * 1.25))
-    scores["wpm"] = round(score)
+    filler_rate = audio.get("filler_rate", 0)
+    if filler_rate < 5:     scores["fillers"] = 100; grades["fillers"] = "good"
+    elif filler_rate < 10:  scores["fillers"] = 65;  grades["fillers"] = "warning"
+    else:                   scores["fillers"] = 30;  grades["fillers"] = "bad"
 
-    # Grade labels
-    if score >= 80:
-        grades["wpm"] = "good"
-    elif score >= 55:
-        grades["wpm"] = "warning"
-    else:
-        grades["wpm"] = "bad"
-    # ────────────────── WPM Logic end ────────────────── #
+    pause_count = audio.get("pause_count", 0)
+    if pause_count == 0:    scores["pauses"] = 100; grades["pauses"] = "good"
+    elif pause_count <= 2:  scores["pauses"] = 70;  grades["pauses"] = "warning"
+    else:                   scores["pauses"] = 40;  grades["pauses"] = "bad"
 
-    # ── Filler % (ideal <5%) ───────────────────────────────────────────────
-    word_count = audio.get("word_count", 1) or 1
-    total_fillers = audio.get("total_fillers", 0)
-    filler_pct = (total_fillers / word_count) * 100
-    if filler_pct < 5:
-        scores["fillers"] = 100
-        grades["fillers"] = "good"
-    elif filler_pct < 10:
-        scores["fillers"] = 65
-        grades["fillers"] = "warning"
-    else:
-        scores["fillers"] = 30
-        grades["fillers"] = "bad"
+    speech_ratio = audio.get("speech_ratio", 1.0)
+    if speech_ratio >= 0.75:   scores["speech_ratio"] = 100; grades["speech_ratio"] = "good"
+    elif speech_ratio >= 0.55: scores["speech_ratio"] = 65;  grades["speech_ratio"] = "warning"
+    else:                      scores["speech_ratio"] = 30;  grades["speech_ratio"] = "bad"
 
-    # ── Visual attention / eye contact (smooth scoring) ────────────────────
     eye_pct = video.get("gaze_on_screen_pct")
     if eye_pct is not None:
-        ideal_eye = 85
-        # Only penalize below ideal
-        if eye_pct >= ideal_eye:
-            score = 100
-        else:
-            distance = ideal_eye - eye_pct
-            # Smooth penalty curve
-            score = max(0, 100 - (distance * 1.5))
-
-        scores["eye_contact"] = round(score)
-
-        # Grade labels
-        if score >= 80:
-            grades["eye_contact"] = "good"
-        elif score >= 55:
-            grades["eye_contact"] = "warning"
-        else:
-            grades["eye_contact"] = "bad"
-
+        if eye_pct >= 70:   scores["eye_contact"] = 100; grades["eye_contact"] = "good"
+        elif eye_pct >= 50: scores["eye_contact"] = 65;  grades["eye_contact"] = "warning"
+        else:               scores["eye_contact"] = 30;  grades["eye_contact"] = "bad"
     else:
-        scores["eye_contact"] = None
-        grades["eye_contact"] = "unknown"
+        scores["eye_contact"] = None; grades["eye_contact"] = "unknown"
 
-
-
-    # ── Blink rate (ideal 10–25 blinks/min) ───────────────────────────────
     blink_count = video.get("blink_count")
-    if blink_count is not None and duration_seconds > 0:
-        blinks_per_min = (blink_count / duration_seconds) * 60
-        if 10 <= blinks_per_min <= 25:
-            scores["blink_rate"] = 100
-            grades["blink_rate"] = "good"
-        elif 6 <= blinks_per_min < 10 or 20 < blinks_per_min <= 30:
-            scores["blink_rate"] = 65
-            grades["blink_rate"] = "warning"
-        else:
-            scores["blink_rate"] = 30
-            grades["blink_rate"] = "bad"
+    duration    = audio.get("duration", 60)
+    if blink_count is not None and duration > 0:
+        bpm = (blink_count / duration) * 60
+        if 10 <= bpm <= 20:                    scores["blink_rate"] = 100; grades["blink_rate"] = "good"
+        elif 6 <= bpm < 10 or 20 < bpm <= 30: scores["blink_rate"] = 65;  grades["blink_rate"] = "warning"
+        elif bpm > 30:                        scores["blink_rate"] = 30;  grades["blink_rate"] = "bad"
     else:
-        scores["blink_rate"] = None
-        grades["blink_rate"] = "unknown"
+        scores["blink_rate"] = None; grades["blink_rate"] = "unknown"
 
-    # ── Weighted combined score ────────────────────────────────────────────
     has_video = eye_pct is not None and blink_count is not None
-
     if has_video:
-        weights = {
-            "wpm": 0.25,
-            "fillers": 0.25,
-            "eye_contact": 0.30,
-            "blink_rate": 0.20,
-        }
+        weights = {"wpm": 0.20, "fillers": 0.20, "pauses": 0.10,
+                   "speech_ratio": 0.10, "eye_contact": 0.25, "blink_rate": 0.15}
     else:
-        weights = {
-            "wpm": 0.40,
-            "fillers": 0.40,
-            "eye_contact": 0.0,
-            "blink_rate": 0.0,
-        }
+        weights = {"wpm": 0.30, "fillers": 0.30, "pauses": 0.20,
+                   "speech_ratio": 0.20, "eye_contact": 0.0, "blink_rate": 0.0}
 
-    combined = sum(
-        scores[k] * weights[k]
-        for k in weights
-        if scores.get(k) is not None
-    )
+    # ── FIX: weighted average, not weighted sum ────────────────────────────
+    active = {k: w for k, w in weights.items() if scores.get(k) is not None and w > 0}
+    total_w = sum(active.values())
+    if total_w == 0:
+        combined = 0.0
+    else:
+        weighted_sum = sum(scores[k] * active[k] for k in active)
+        combined = round(weighted_sum / total_w, 1)   # ← NO * 100 here
 
-    # Normalize if some weights were skipped
-    active_weight = sum(
-        w for k, w in weights.items()
-        if scores.get(k) is not None
-    )
+    return {"combined_score": combined, "grades": grades}
 
-    if active_weight > 0:
-        combined = combined / active_weight
-
-    combined = round(min(100, max(0, combined)), 1)
-    
-    return {
-        "combined_score": combined,
-        "grades": grades,
-        "scores": scores,
-    }
 
 @router.post("/analyze")
 async def analyze(video: UploadFile = File(...), user=Depends(get_current_user)):
-    uid = str(uuid.uuid4())
+    uid       = str(uuid.uuid4())
     webm_path = f"/tmp/{uid}.webm"
     wav_path  = f"/tmp/{uid}.wav"
 
@@ -164,43 +97,34 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
     with open(webm_path, "wb") as f:
         f.write(content)
 
-    # Run audio conversion + video analysis concurrently
     await convert_to_wav(webm_path, wav_path)
 
-    user_doc = await db.users.find_one({"_id": user["id"]})
+    user_doc         = await db.users.find_one({"_id": user["id"]})
     user_calibration = user_doc.get("gaze_calibration") if user_doc else None
 
     loop = asyncio.get_event_loop()
-    audio_task = loop.run_in_executor(None, analyze_audio, wav_path)
-    video_task = loop.run_in_executor(None, analyze_video, webm_path, user_calibration)
-
-    audio_result, video_result = await asyncio.gather(audio_task, video_task)
+    audio_result, video_result = await asyncio.gather(
+        loop.run_in_executor(None, analyze_audio, wav_path),
+        loop.run_in_executor(None, analyze_video, webm_path, user_calibration),
+    )
 
     for p in [webm_path, wav_path]:
-        try:
-            os.remove(p)
-        except OSError:
-            pass
+        try: os.remove(p)
+        except OSError: pass
 
-    transcript  = audio_result.get("transcript", "")
-    word_count  = len(transcript.split()) if transcript else 1
-    total_fillers     = audio_result["total_fillers"]
-    filler_percentage = round((total_fillers / word_count) * 100, 2)
+    transcript    = audio_result.get("transcript", "")
+    total_fillers = audio_result["total_fillers"]
+    word_count    = audio_result.get("word_count", max(len(transcript.split()), 1))
+    filler_pct    = round((total_fillers / word_count) * 100, 2)
+    scoring       = compute_combined_score(audio_result, video_result)
 
-    # Estimate duration from WPM + word count
-    wpm = audio_result.get("wpm", 0)
-    duration_sec = (word_count / wpm * 60) if wpm > 0 else 60.0
-
-    scoring = compute_combined_score(audio_result, video_result, duration_sec)
-
-    # Streak
-    today = str(date.today())
+    today      = str(date.today())
     streak_doc = await db.streaks.find_one({"user_id": user["id"]})
     if not streak_doc:
         new_streak = 1
     else:
-        last_active = streak_doc.get("last_active")
-        new_streak = streak_doc.get("current_streak", 0) if last_active == today \
+        last = streak_doc.get("last_active")
+        new_streak = streak_doc.get("current_streak", 0) if last == today \
                      else streak_doc.get("current_streak", 0) + 1
 
     await db.streaks.update_one(
@@ -211,25 +135,51 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
     )
 
     response = {
-        "id": str(uuid.uuid4()),
+        "id":      str(uuid.uuid4()),
         "user_id": user["id"],
-        "wpm": audio_result["wpm"],
-        "filler_words": audio_result["fillers"],
-        "filler_count": total_fillers,
-        "filler_percentage": filler_percentage,
+
+        # Audio
+        "wpm":                 audio_result["wpm"],
+        "articulation_rate":   audio_result["articulation_rate"],
+        "speech_ratio":        audio_result["speech_ratio"],
+        "pace_variation":      audio_result["pace_variation"],
+        "filler_words":        audio_result["fillers"],
+        "filler_count":        total_fillers,
+        "filler_percentage":   filler_pct,
+        "filler_rate":         audio_result["filler_rate"],
+
+        # Pauses
+        "long_pauses":         audio_result["pause_count"],
+        "pause_details":       audio_result["long_pauses"],
+        "avg_pause_duration":  audio_result["avg_pause_duration"],
+        "max_pause_duration":  audio_result["max_pause_duration"],
+        "short_pause_count":   audio_result["short_pause_count"],
+
+        # Language
+        "vocabulary_richness": audio_result["vocabulary_richness"],
+        "avg_sentence_length": audio_result["avg_sentence_length"],
+        "repeated_phrases":    audio_result["repeated_phrases"],
+
+        # Sub-scores
+        "pace_score":    audio_result["pace_score"],
+        "clarity_score": audio_result["clarity_score"],
+        "fluency_score": audio_result["fluency_score"],
+
+        # Video
         "eye_contact_percentage": video_result.get("gaze_on_screen_pct"),
-        "long_pauses": audio_result["pause_count"],
-        # Legacy field — keep for dashboard charts
+        "gaze_on_screen_pct":     video_result.get("gaze_on_screen_pct"),
+        "blink_count":            video_result.get("blink_count"),
+        "attention_score":        video_result.get("attention_score"),
+
+        # Combined
         "confidence_score": scoring["combined_score"],
-        # New fields
-        "combined_score": scoring["combined_score"],
-        "grades": scoring["grades"],
-        "transcript": transcript,
-        "blink_count": video_result.get("blink_count"),
-        "attention_score": video_result.get("attention_score"),
-        "gaze_on_screen_pct": video_result.get("gaze_on_screen_pct"),
-        "video_data": None,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "combined_score":   scoring["combined_score"],
+        "grades":           scoring["grades"],
+
+        # Meta
+        "transcript":  transcript,
+        "video_data":  None,
+        "created_at":  datetime.now(timezone.utc).isoformat(),
     }
 
     await db.evaluations.insert_one(response)
@@ -244,9 +194,9 @@ async def history(user=Depends(get_current_user)):
     for d in data:
         d.pop("_id", None)
         formatted.append({
-            "date": d.get("created_at", "")[:10],
-            "wpm": d.get("wpm", 0),
+            "date":         d.get("created_at", "")[:10],
+            "wpm":          d.get("wpm", 0),
             "filler_count": d.get("filler_count", 0),
-            "eye_gaze": d.get("gaze_on_screen_pct") or d.get("eye_contact_percentage", 0),
+            "eye_gaze":     d.get("gaze_on_screen_pct") or d.get("eye_contact_percentage", 0),
         })
     return formatted
