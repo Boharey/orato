@@ -21,7 +21,11 @@ const SCENARIO_DATA = {
       'Keep the entire answer under 2 minutes.',
       'Practice until it feels natural, not rehearsed.',
     ],
-    script: `“In my last role, our main client threatened to leave because of repeated delivery delays. I volunteered to lead a cross‑functional tiger team. First, I mapped the entire workflow and found three bottlenecks. I then implemented a daily 10‑min stand‑up and a shared tracking dashboard. Within six weeks, we improved on‑time delivery from 72% to 95%, and the client not only stayed but expanded their contract. That experience taught me that clear ownership and data‑driven fixes can turn even the toughest situations around.”`,
+    script: `“About a year ago... [pause] our largest client was seriously considering ending their contract because we had missed multiple delivery deadlines in a row. Morale inside the team was low... [pause] and communication between departments had almost completely broken down.
+            I volunteered to coordinate a small cross-functional task force to stabilize the situation. [pause] My first step was understanding where delays were actually happening instead of making assumptions. I spent two days mapping the workflow from design all the way to deployment... [short pause] and discovered that most delays came from unclear task ownership and late QA feedback.
+            After identifying the bottlenecks... [pause] I introduced a shared tracking dashboard, shorter review cycles, and a daily 10-minute stand-up focused only on blockers and priorities. I also worked directly with stakeholders to reset expectations and improve transparency.
+            Within six weeks... [pause] on-time delivery improved from 72% to 95%, support escalations dropped significantly, and the client not only renewed their contract... [short pause] but expanded the partnership for another year.
+            That experience taught me something important... [pause] leadership during pressure is less about controlling people and more about creating clarity, accountability, and momentum when uncertainty is high.”`,
   },
   'technical-explain-project': {
     title: 'Technical Interview: Explain Your Project',
