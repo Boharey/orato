@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import {
@@ -291,6 +292,15 @@ export const Evaluation = () => {
   useEffect(() => {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [stream]);
+  
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.script) {
+      setScript(location.state.script);
+      setScriptOpen(true);   // automatically open the Script/Reference panel
+    }
+  }, [location.state]);
+
 
   const startRecording = async () => {
     try {

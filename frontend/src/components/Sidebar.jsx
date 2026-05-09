@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
-import { Home, BarChart2, Video, BookOpen, User, LogOut, Menu, X } from 'lucide-react';
+import { Home, BarChart2, Video, BookOpen, User, LogOut, Menu, X, ClipboardList } from 'lucide-react';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -21,6 +21,7 @@ export const Sidebar = () => {
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/evaluation', icon: Video, label: 'Evaluation' },
     { path: '/training', icon: BookOpen, label: 'Training' },
+    { path: '/scenarios', icon: ClipboardList, label: 'Scenarios' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
 

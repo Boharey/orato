@@ -14,6 +14,10 @@ import { TrainingModule } from './pages/TrainingModule';
 import { Profile } from './pages/Profile';
 import { TechniquePage } from './pages/Techniquepage';
 
+// scenarios 
+import { ScenarioList } from './pages/ScenarioList';
+import { ScenarioDetail } from './pages/ScenarioDetail';
+
 function App() {
   return (
     <AuthProvider>
@@ -76,6 +80,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/scenarios" element={<ProtectedRoute><ScenarioList /></ProtectedRoute>} />
+          <Route path="/scenarios/:scenarioId" element={<ProtectedRoute><ScenarioDetail /></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
