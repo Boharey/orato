@@ -218,7 +218,8 @@ export const Register = () => {
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required
+                  required  
+                  autoComplete="name"
                   className="auth-input"
                 />
               </div>
@@ -235,6 +236,7 @@ export const Register = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className={`auth-input pr-10 ${email.length > 0 && (emailValid ? 'border-green-500 focus:border-green-500 focus:shadow-green-100' : 'border-red-400 focus:border-red-400 focus:shadow-red-100')}`}
                 />
                 {email.length > 0 && (
@@ -259,6 +261,7 @@ export const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="new-password"
                 className={`auth-input ${password.length > 0 && (passwordValid ? 'border-green-500' : 'border-gray-300')}`}
               />
               {password.length > 0 && (

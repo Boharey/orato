@@ -154,6 +154,7 @@ export const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autocomplete="email"
                 className="auth-input"
               />
             </div>
@@ -168,6 +169,7 @@ export const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autocomplete="current-password"
                 className="auth-input"
               />
             </div>
