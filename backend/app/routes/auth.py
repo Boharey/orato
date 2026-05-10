@@ -1,12 +1,14 @@
 import uuid
 from datetime import datetime, timezone
+import jwt                                      # <-- new
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials  # <-- new
 from app.db.database import db
 from app.models.users import UserRegister, UserLogin, TokenResponse, UserResponse, EmailRequest
-from app.core.security import hash_password, verify_password, create_token, get_current_user
+from app.core.security import hash_password, verify_password, create_token, get_current_user, security   # <-- added 'security'
+from app.core.config import SECRET_KEY, ALGORITHM          # <-- new
 from app.services.email_service import send_verification_email
 from app.core.limiter import limiter
-
 router = APIRouter(prefix="/auth")
 
 
@@ -89,6 +91,22 @@ async def login(request: Request, data: UserLogin):
         },
     }
 
+
+@router.post("/logout")
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Insert the current token into the blocklist."""
+    token = credentials.credentials
+    # Decode to extract expiration (we need it for TTL)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    except Exception:
+        # If token is invalid, still success – nothing to block
+        return {"message": "Logged out"}
+
+    # Insert into blocklist with TTL index (see next step)
+    await db.token_blocklist.insert_one({"token": token, "expires_at": exp})
+    return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserResponse)
 async def me(user=Depends(get_current_user)):
