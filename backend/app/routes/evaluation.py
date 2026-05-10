@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 import uuid
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 import asyncio
 import os
 
+from app.services.streakservice import calculate_streaks
 from app.db.database import db
 from app.services.orato_engine import analyze_audio
 from app.services.video_analyzer import analyze_video
@@ -118,19 +119,23 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
     filler_pct    = round((total_fillers / word_count) * 100, 2)
     scoring       = compute_combined_score(audio_result, video_result)
 
-    today      = str(date.today())
+
+    today_str = date.today().isoformat()
     streak_doc = await db.streaks.find_one({"user_id": user["id"]})
-    if not streak_doc:
-        new_streak = 1
-    else:
-        last = streak_doc.get("last_active")
-        new_streak = streak_doc.get("current_streak", 0) if last == today \
-                     else streak_doc.get("current_streak", 0) + 1
+    existing_dates = streak_doc.get("dates", []) if streak_doc else []
+    all_dates = sorted(set(existing_dates + [today_str]))
+
+    streaks = calculate_streaks(all_dates)
 
     await db.streaks.update_one(
         {"user_id": user["id"]},
-        {"$addToSet": {"dates": today},
-         "$set": {"current_streak": new_streak, "last_active": today}},
+        {
+            "$set": {
+                "dates": all_dates,
+                "current_streak": streaks["current_streak"],
+                "last_active": today_str,
+            }
+        },
         upsert=True,
     )
 

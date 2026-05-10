@@ -6,3 +6,4 @@ class StreakData(BaseModel):
     user_id: str
     dates: List[str]
     current_streak: int
+    longest_streak: int = 0

@@ -6,7 +6,11 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
 export const StreakCalendar = () => {
   const { user } = useAuth();
-  const [streakData, setStreakData] = useState({ dates: [], current_streak: 0 });
+  const [streakData, setStreakData] = useState({
+    dates: [],
+    current_streak: 0,
+    longest_streak: 0,
+  });
 
   useEffect(() => {
     if (user) {
@@ -52,9 +56,25 @@ export const StreakCalendar = () => {
     <div className="space-y-4" data-testid="streak-calendar">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-serif font-medium">Practice Streak</h3>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-accent" data-testid="current-streak">{streakData.current_streak}</p>
-          <p className="text-xs text-muted-foreground">day streak</p>
+        <div className="flex gap-5">
+          <div className="text-right">
+            <p
+              className="text-2xl font-bold text-accent"
+              data-testid="current-streak"
+            >
+              {streakData.current_streak}
+            </p>
+            <p className="text-xs text-muted-foreground">current</p>
+          </div>
+          <div className="text-right">
+            <p
+              className="text-2xl font-bold text-primary"
+              data-testid="longest-streak"
+            >
+              {streakData.longest_streak || streakData.current_streak}
+            </p>
+            <p className="text-xs text-muted-foreground">longest</p>
+          </div>
         </div>
       </div>
 

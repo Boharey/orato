@@ -19,7 +19,7 @@ def verify_password(p, h):
 def create_token(user_id: str):
     payload = {
         "user_id": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=2),  # shorter is safer
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 

@@ -42,13 +42,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, name) => {
-    const response = await axios.post(`${API_URL}/auth/register`, { email, password, name });
-    const { token: newToken, user: userData } = response.data;
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
-    setUser(userData);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    return userData;
+    // Backend now returns only { message: "..." } – no token or user.
+    await axios.post(`${API_URL}/auth/register`, { email, password, name });
+    // We do NOT log the user in; they must verify their email first.
   };
 
   const logout = () => {

@@ -1,4 +1,9 @@
 # Here are your Instructions
+
+<!-- run frontend -->
+orato/frontend : npm start
+<!--  -->
+
 <!-- run backend -->
-uvicorn app.main:app --reload
+orato/backend : uvicorn app.main:app --reload
 <!--  -->

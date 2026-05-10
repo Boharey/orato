@@ -11,18 +11,67 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-/* ─── Styles ──────────────────────────────────────────────────────────────── */
+/* ─── Styles (unchanged, but we add a simpler result row style) ───────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 
   @keyframes ev-ping   { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.35);opacity:.15} }
   @keyframes ev-fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   @keyframes ev-spin   { to{transform:rotate(360deg)} }
-  @keyframes ev-bar    { from{width:0} to{width:var(--w)} }
   @keyframes ev-pop    { 0%{transform:scale(.8);opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
 
   .ev-result-enter { animation: ev-fadeUp .4s ease both; }
-  .ev-metric-enter { animation: ev-pop .35s ease both; }
+  
+  /* NEW simple result row style */
+  .ev-result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 0;
+    border-bottom: 1px solid #E2E4DE;
+  }
+  .ev-result-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5A6A5A;
+  }
+  .ev-result-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2E2E;
+    font-family: 'Playfair Display', serif;
+  }
+  .ev-filler-list {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+      .ev-score-ring-wrap {
+    position: relative; width: 82px; height: 82px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ev-score-ring-wrap svg {
+    position: absolute; inset: 0; transform: rotate(-90deg);
+  }
+  .ev-score-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 900;
+  }
+
+  .ev-demo-bar-track { background:#F1F3F1; border-radius:999px; height:4px; overflow:hidden; }
+  .ev-demo-bar-fill  { height:100%; border-radius:999px; transition:width .6s ease; }
+
+  @keyframes demo-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .ev-demo-pulse { animation: demo-pulse 1.2s ease-in-out infinite; }
+  .ev-filler-badge {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
 
   .ev-grade-dot {
     width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
@@ -32,18 +81,6 @@ const STYLES = `
   .ev-grade-warning { background:#f59e0b; color:#f59e0b; }
   .ev-grade-bad     { background:#ef4444; color:#ef4444; }
   .ev-grade-unknown { background:#9ca3af; color:#9ca3af; }
-
-  .ev-score-ring {
-    position:relative; width:96px; height:96px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .ev-score-ring svg { position:absolute; inset:0; transform:rotate(-90deg); }
-
-  .ev-bar-track { background:#f1f5f1; border-radius:999px; height:6px; overflow:hidden; }
-  .ev-bar-fill  { height:100%; border-radius:999px; animation: ev-bar .8s ease both; }
-
-  .ev-transcript-word { display:inline; }
-  .ev-filler { background:#fef3c7; color:#92400e; border-radius:4px; padding:1px 4px; font-weight:600; }
 
   .ev-script-area {
     resize:none; width:100%;
@@ -57,18 +94,6 @@ const STYLES = `
   .ev-script-area::placeholder { color:#A0A8A0; }
 
   .ev-analyzing-step { animation: ev-fadeUp .3s ease both; }
-
-  .ev-metric-card {
-    background:#fff; border:1px solid #E2E4DE; border-radius:14px;
-    padding:16px 18px; display:flex; align-items:center; gap:14px;
-    transition:box-shadow .2s;
-  }
-  .ev-metric-card:hover { box-shadow:0 4px 16px rgba(46,79,79,.08); }
-
-  .ev-section-label {
-    font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-    color:#9CA3AF; margin-bottom:10px;
-  }
 `;
 
 /* ─── Communication facts ────────────────────────────────────────────────── */
@@ -85,78 +110,27 @@ const FACTS = [
   "The ideal speaking rate for comprehension is 120–160 words per minute.",
 ];
 
-
-/* ─── Grade helpers ───────────────────────────────────────────────────────── */
-const gradeClass  = g => `ev-grade-${g || 'unknown'}`;
-const gradeLabel  = { good: 'On target', warning: 'Needs work', bad: 'Off range', unknown: 'No data' };
-const gradeColor  = { good: '#22c55e', warning: '#f59e0b', bad: '#ef4444', unknown: '#9ca3af' };
-
-/* ─── Score ring ──────────────────────────────────────────────────────────── */
-const ScoreRing = ({ score, label }) => {
-  const r = 42, circ = 2 * Math.PI * r;
-  const pct = Math.min(100, Math.max(0, score ?? 0));
-  const dash = (pct / 100) * circ;
-  const color = pct >= 75 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+/* ─── Simple result row component ───────────────────────────────────────── */
+const ResultRow = ({ label, value, unit, grade }) => {
+  let gradeColor = "";
+  if (grade === "good") gradeColor = "#22c55e";
+  else if (grade === "warning") gradeColor = "#f59e0b";
+  else if (grade === "bad") gradeColor = "#ef4444";
+  else gradeColor = "#9ca3af";
+  
   return (
-    <div className="ev-score-ring">
-      <svg viewBox="0 0 96 96" width="96" height="96">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="#F1F5F1" strokeWidth="7" />
-        <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="7"
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 1s ease' }} />
-      </svg>
-      <div className="text-center">
-        <div className="text-xl font-black" style={{ color, fontFamily: "'Playfair Display', serif" }}>
-          {score != null ? `${score}` : '—'}
-        </div>
-        <div className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</div>
+    <div className="ev-result-row">
+      <span className="ev-result-label">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="ev-result-value">{value ?? '—'}</span>
+        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+        <span className="ev-grade-dot" style={{ background: gradeColor }} />
       </div>
     </div>
   );
 };
 
-/* ─── Metric card ─────────────────────────────────────────────────────────── */
-const MetricCard = ({ icon: Icon, label, value, unit, grade, range, delay = 0 }) => (
-  <div className="ev-metric-card ev-metric-enter" style={{ animationDelay: `${delay}s` }}>
-    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{ background: `${gradeColor[grade] || '#9ca3af'}15` }}>
-      <Icon className="w-4 h-4" style={{ color: gradeColor[grade] || '#9ca3af' }} />
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-1.5">
-          <span className={`ev-grade-dot ${gradeClass(grade)}`} />
-          <span className="text-[10px]" style={{ color: gradeColor[grade] || '#9ca3af' }}>
-            {gradeLabel[grade] || '—'}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-baseline gap-1.5 mb-2">
-        <span className="text-xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-          {value ?? '—'}
-        </span>
-        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
-      </div>
-      {range && (
-        <div className="ev-bar-track">
-          <div className="ev-bar-fill" style={{
-            '--w': `${Math.min(100, (value / range.max) * 100)}%`,
-            width: `${Math.min(100, (value / range.max) * 100)}%`,
-            background: gradeColor[grade] || '#9ca3af'
-          }} />
-        </div>
-      )}
-      {range && (
-        <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-          <span>0</span><span>Ideal: {range.label}</span><span>{range.max}</span>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-/* ─── Transcript ──────────────────────────────────────────────────────────── */
+/* ─── Transcript (unchanged) ────────────────────────────────────────────── */
 const FILLERS_SET = new Set(['um','uh','like','you know','actually','basically','so']);
 
 const Transcript = ({ transcript, fillerWords }) => {
@@ -201,7 +175,7 @@ const Transcript = ({ transcript, fillerWords }) => {
   );
 };
 
-/* ─── Analyzing overlay – now with fact ──────────────────────────────────── */
+/* ─── Analyzing overlay (unchanged) ─────────────────────────────────────── */
 const AnalyzingOverlay = ({ fact }) => {
   const steps = [
     { icon: Mic,      label: 'Transcribing speech...' },
@@ -233,7 +207,6 @@ const AnalyzingOverlay = ({ fact }) => {
             style={{ background: i === step ? '#FF6B35' : 'rgba(255,255,255,.25)', transform: i === step ? 'scale(1.4)' : 'scale(1)' }} />
         ))}
       </div>
-      {/* NEW: fact tip */}
       <div className="mt-4 px-6 max-w-xs text-center" style={{ animation: 'ev-fadeUp 0.6s ease both' }}>
         <span className="text-[11px] text-white/80 italic leading-snug">
           💡 {fact || "Did you know? \u200B"}
@@ -243,7 +216,7 @@ const AnalyzingOverlay = ({ fact }) => {
   );
 };
 
-/* ─── Script panel ────────────────────────────────────────────────────────── */
+/* ─── Script panel (unchanged) ───────────────────────────────────────────── */
 const ScriptPanel = ({ script, setScript, visible, setVisible }) => (
   <div className="bg-card border border-border rounded-2xl overflow-hidden">
     <button
@@ -274,7 +247,55 @@ const ScriptPanel = ({ script, setScript, visible, setVisible }) => (
   </div>
 );
 
-/* ─── Main ────────────────────────────────────────────────────────────────── */
+/* ─── Animation component ─────────────────────────────────────────────────────── */
+const AnimatedScoreRing = ({ score }) => {
+  const r = 33, circ = 2 * Math.PI * r;
+  const pct = Math.min(100, Math.max(0, score ?? 0));
+  const dash = (pct / 100) * circ;
+  const color = pct >= 75 ? '#22c55e' : pct >= 55 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="ev-score-ring-wrap">
+      <svg viewBox="0 0 82 82" width="82" height="82">
+        <circle cx="41" cy="41" r={r} fill="none" stroke="#E2E4DE" strokeWidth="6" />
+        <circle cx="41" cy="41" r={r} fill="none" stroke={color} strokeWidth="6"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 1s ease' }} />
+      </svg>
+      <span className="ev-score-num" style={{ color }}>{score}</span>
+    </div>
+  );
+};
+
+const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedback = '' }) => {
+  const gradeColor = { good: '#22c55e', warning: '#f59e0b', bad: '#ef4444', unknown: '#9ca3af' }[grade] || '#9ca3af';
+
+  return (
+    <div className="ev-metric-enter" style={{ animationDelay: `${delay}s` }}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: gradeColor }} />
+          <span className="text-[10px] font-medium" style={{ color: gradeColor }}>
+            {grade === 'good' ? 'On target' : grade === 'warning' ? 'Needs work' : grade === 'bad' ? 'Off range' : 'No data'}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <span className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{value ?? '—'}</span>
+        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+      </div>
+      <div className="ev-demo-bar-track">
+        <div className="ev-demo-bar-fill"
+          style={{ width: `${barPct}%`, background: gradeColor }} />
+      </div>
+      {feedback && (
+        <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{feedback}</p>
+      )}
+    </div>
+  );
+};
+/* ─── Main component ─────────────────────────────────────────────────────── */
 export const Evaluation = () => {
   const [recording, setRecording]       = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
@@ -283,7 +304,7 @@ export const Evaluation = () => {
   const [stream, setStream]             = useState(null);
   const [script, setScript]             = useState('');
   const [scriptOpen, setScriptOpen]     = useState(false);
-  const [currentFact]                   = useState(() => FACTS[Math.floor(Math.random() * FACTS.length)]); // NEW
+  const [currentFact]                   = useState(() => FACTS[Math.floor(Math.random() * FACTS.length)]);
    
   const videoRef          = useRef(null);
   const mediaRecorderRef  = useRef(null);
@@ -297,10 +318,9 @@ export const Evaluation = () => {
   useEffect(() => {
     if (location.state?.script) {
       setScript(location.state.script);
-      setScriptOpen(true);   // automatically open the Script/Reference panel
+      setScriptOpen(true);
     }
   }, [location.state]);
-
 
   const startRecording = async () => {
     try {
@@ -372,25 +392,77 @@ export const Evaluation = () => {
     }
   };
 
-  const grades = results?.grades || {};
+  // Helper to determine grade based on value and ranges (similar to original logic)
+  const getGrade = (metric, value) => {
+    if (value == null) return 'unknown';
+    switch(metric) {
+      case 'wpm':
+        if (value >= 120 && value <= 160) return 'good';
+        if (value >= 100 && value <= 180) return 'warning';
+        return 'bad';
+      case 'fillers':
+        if (value <= 2) return 'good';
+        if (value <= 6) return 'warning';
+        return 'bad';
+      case 'eye_contact':
+        if (value >= 70) return 'good';
+        if (value >= 50) return 'warning';
+        return 'bad';
+      case 'blink_rate':
+        if (value >= 10 && value <= 20) return 'good';
+        if (value >= 8 && value <= 30) return 'warning';
+        return 'bad';
+      default:
+        return 'unknown';
+    }
+  };
+
+  const getMetricFeedback = (metric, value, grade) => {
+  if (value == null) return '';
+  switch (metric) {
+    case 'wpm':
+      if (grade === 'good') return 'Your pace is ideal. Keep it up!';
+      if (grade === 'warning') return 'Try slowing down a bit for better clarity.';
+      return 'Your pace is off. Focus on controlled speaking.';
+    case 'fillers':
+      if (grade === 'good') return 'Great! Keep it up.';
+      if (grade === 'warning') return 'A few fillers, but still okay.';
+      return 'Too many fillers. Practice replacing them with pauses.';
+    case 'long_pauses':
+      if (grade === 'good') return 'Perfect! Good speech flow.';
+      if (grade === 'warning') return 'Some pauses; try to connect sentences.';
+      return 'Frequent pauses disrupt flow. Aim for smoother delivery.';
+    case 'eye_contact':
+      if (grade === 'good') return 'Excellent eye contact!';
+      if (grade === 'warning') return 'Room for improvement. Try looking at the camera more.';
+      return 'Low eye contact – work on engaging with the audience.';
+    case 'blink_rate':
+      if (grade === 'good') return 'Balanced blinking. Looks natural.';
+      if (grade === 'warning') return 'Slightly irregular blinking. Keep it natural.';
+      return 'Try to blink naturally while speaking.';
+    default:
+      return '';
+  }
+};
+  const grades = {
+    wpm: getGrade('wpm', results?.wpm),
+    fillers: getGrade('fillers', results?.filler_count),
+    eye_contact: getGrade('eye_contact', results?.gaze_on_screen_pct),
+    blink_rate: getGrade('blink_rate', results?.blink_count),
+  };
 
   return (
     <Layout>
       <style>{STYLES}</style>
       <div className="p-6 md:p-8 max-w-7xl mx-auto" data-testid="evaluation-page">
-
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-serif font-light tracking-tight mb-1">Evaluation</h1>
           <p className="text-muted-foreground text-sm">Record yourself speaking and get AI-powered feedback</p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
-
-          {/* ── LEFT COLUMN ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+          {/* LEFT COLUMN: video, controls, transcript */}
           <div className="space-y-4">
-
-            {/* Video */}
             <div className="bg-card border border-border rounded-2xl overflow-hidden aspect-video relative">
               <video ref={videoRef} data-testid="evaluation-video"
                 className="w-full h-full object-cover bg-black" playsInline />
@@ -411,7 +483,6 @@ export const Evaluation = () => {
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
             </div>
 
-            {/* Controls */}
             <div className="flex gap-2.5">
               {!recording && !recordedBlob && (
                 <button onClick={startRecording} data-testid="start-recording-btn"
@@ -437,7 +508,7 @@ export const Evaluation = () => {
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90 disabled:opacity-60"
                     style={{ background: '#2E4F4F' }}>
                     {analyzing
-                      ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style={{ animation: 'ev-spin .7s linear infinite' }} /> Analyzing...</>
+                      ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...</>
                       : <><Zap className="w-4 h-4" /> Analyze</>}
                   </button>
                   <button onClick={reset} data-testid="reset-btn" disabled={analyzing}
@@ -455,12 +526,6 @@ export const Evaluation = () => {
               )}
             </div>
 
-            {/* Script panel */}
-            {!results && (
-              <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />
-            )}
-
-            {/* Transcript (after results) */}
             {results?.transcript && (
               <div className="ev-result-enter">
                 <Transcript transcript={results.transcript} fillerWords={results.filler_words} />
@@ -468,104 +533,118 @@ export const Evaluation = () => {
             )}
           </div>
 
-          {/* ── RIGHT COLUMN — Results ─────────────────────────────────── */}
+          {/* RIGHT COLUMN: Script always on top, results below (SIMPLIFIED) */}
           <div className="space-y-4">
-            {results ? (
-              <div className="ev-result-enter space-y-4" data-testid="evaluation-results">
+            <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />
 
-                {/* Combined score */}
-                <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-5">
-                  <ScoreRing score={results.combined_score} label="Score" />
+            {results ? (
+              <div className="ev-result-enter bg-card border border-border rounded-2xl p-5 space-y-4" data-testid="evaluation-results">
+                {/* Combined Score with ring */}
+                <div className="flex items-center gap-4 pb-4 border-b border-border">
+                  <AnimatedScoreRing score={results.combined_score ?? 0} />
                   <div>
-                    <p className="ev-section-label mb-1">Combined Score</p>
-                    <p className="text-2xl font-black text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-                      {results.combined_score >= 75 ? 'Excellent' : results.combined_score >= 55 ? 'Good' : results.combined_score >= 35 ? 'Fair' : 'Needs Practice'}
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-0.5">Combined Score</p>
+                    <p className="text-xl font-black" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {results.combined_score >= 75 ? 'Excellent! 🥳' : results.combined_score >= 55 ? 'Great job! 👍' : results.combined_score >= 35 ? 'Fair 😊' : 'Needs Practice 💪'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Weighted: pace · fillers · eye contact · blink rate
+                      {results.combined_score >= 75 ? "You're doing great – keep polishing those skills." :
+                      results.combined_score >= 55 ? "Good effort. A few tweaks and you'll be at the top." :
+                      results.combined_score >= 35 ? "You're on the right track. Keep practicing." :
+                      "Everyone starts somewhere. Regular practice will get you there."}
                     </p>
                   </div>
                 </div>
 
-                {/* Speech metrics */}
-                <div>
-                  <p className="ev-section-label px-1">Speech</p>
-                  <div className="space-y-2">
-                    <MetricCard icon={Activity} label="Words Per Minute" value={results.wpm}
-                      grade={grades.wpm} range={{ max: 220, label: '120–160' }} delay={0.05} />
-                    <MetricCard icon={Zap} label="Filler Words" value={results.filler_count}
-                      unit="words" grade={grades.fillers} range={{ max: 20, label: '<5%' }} delay={0.1} />
-                    <MetricCard icon={Clock} label="Long Pauses" value={results.long_pauses}
-                      grade={results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'} delay={0.15} />
-                  </div>
+                {/* Animated Metric Rows */}
+                <div className="space-y-3">
+                  <AnimatedMetricRow
+                    label="Words Per Minute"
+                    value={results.wpm} unit="wpm"
+                    grade={grades.wpm}
+                    barPct={Math.min(100, (results.wpm / 220) * 100)}
+                    delay={0.2}
+                    feedback={getMetricFeedback('wpm', results.wpm, grades.wpm)}
+                  />
+                  <AnimatedMetricRow
+                    label="Filler Words"
+                    value={results.filler_count} unit="found"
+                    grade={grades.fillers}
+                    barPct={Math.min(100, (results.filler_count / 20) * 100)}
+                    delay={0.5}
+                    feedback={getMetricFeedback('fillers', results.filler_count, grades.fillers)}
+                  />
+                  <AnimatedMetricRow
+                    label="Long Pauses"
+                    value={results.long_pauses} unit="pauses"
+                    grade={results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'}
+                    barPct={results.long_pauses === 0 ? 100 : results.long_pauses <= 3 ? 50 : 20}
+                    delay={0.8}
+                    feedback={getMetricFeedback('long_pauses', results.long_pauses, results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad')}
+                  />
+                  {results.gaze_on_screen_pct != null && (
+                    <AnimatedMetricRow
+                      label="Eye Contact"
+                      value={results.gaze_on_screen_pct} unit="%"
+                      grade={grades.eye_contact}
+                      barPct={results.gaze_on_screen_pct}
+                      delay={1.1}
+                      feedback={getMetricFeedback('eye_contact', results.gaze_on_screen_pct, grades.eye_contact)}
+                    />
+                  )}
+                  {results.blink_count != null && (
+                    <AnimatedMetricRow
+                      label="Blink Count"
+                      value={results.blink_count} unit="blinks"
+                      grade={grades.blink_rate}
+                      barPct={Math.min(100, (results.blink_count / 50) * 100)}
+                      delay={1.4}
+                      feedback={getMetricFeedback('blink_rate', results.blink_count, grades.blink_rate)}
+                    />
+                  )}
                 </div>
 
-                {/* Video metrics */}
-                {(results.gaze_on_screen_pct != null || results.blink_count != null) && (
-                  <div>
-                    <p className="ev-section-label px-1">Video Analysis</p>
-                    <div className="space-y-2">
-                      {results.gaze_on_screen_pct != null && (
-                        <MetricCard icon={Eye} label="Eye Contact" value={results.gaze_on_screen_pct}
-                          unit="%" grade={grades.eye_contact} range={{ max: 100, label: '>70%' }} delay={0.2} />
-                      )}
-                      {results.blink_count != null && (
-                        <MetricCard icon={Target} label="Blink Count" value={results.blink_count}
-                          unit="blinks" grade={grades.blink_rate} range={{ max: 50, label: '10–20/min' }} delay={0.25} />
-                      )}
-                      {results.attention_score != null && (
-                        <MetricCard icon={Brain} label="Attention Score" value={results.attention_score}
-                          unit="%" grade={results.attention_score >= 70 ? 'good' : results.attention_score >= 50 ? 'warning' : 'bad'} delay={0.3} />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Filler breakdown */}
+                {/* Filler Words Found (with animation) — now inside the same container */}
                 {results.filler_words && Object.keys(results.filler_words).length > 0 && (
-                  <div className="bg-card border border-border rounded-2xl p-5">
-                    <p className="ev-section-label">Filler Breakdown</p>
+                  <div className="ev-metric-enter pt-3 border-t border-border" style={{ animationDelay: '0.55s' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">Filler Words Found</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(results.filler_words).map(([word, count]) => (
-                        <div key={word} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                          style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                          <span className="font-mono">"{word}"</span>
-                          <span className="font-bold">×{count}</span>
-                        </div>
+                        <span key={word} className="ev-filler-badge">"{word}" x {count}</span>
                       ))}
                     </div>
                   </div>
                 )}
-
               </div>
             ) : (
-              /* Empty state */
-              <div className="bg-card border border-border rounded-2xl p-8 text-center h-full flex flex-col items-center justify-center gap-4" style={{ minHeight: 320 }}>
-                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(46,79,79,.08)' }}>
-                  <Brain className="w-7 h-7 text-primary" />
+              /* Empty state (unchanged) */
+              <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: 'rgba(46,79,79,.08)' }}>
+                  <Brain className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-base font-serif font-medium mb-1">No Results Yet</h3>
-                  <p className="text-sm text-muted-foreground max-w-xs">
-                    Record yourself speaking, then click Analyze to get scored on pace, fillers, eye contact, and blink rate.
+                  <h3 className="text-sm font-serif font-medium mb-1">No Results Yet</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Record & analyze to see your pace, fillers, eye contact & blink rate.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                <div className="grid grid-cols-2 gap-2 text-left">
                   {[
                     ['120–160', 'Ideal WPM'],
                     ['< 5%', 'Filler target'],
                     ['> 70%', 'Eye contact'],
                     ['10–20/min', 'Blink rate'],
                   ].map(([val, label]) => (
-                    <div key={label} className="rounded-xl p-3 text-center" style={{ background: '#F5F7F5', border: '1px solid #E2E4DE' }}>
+                    <div key={label} className="rounded-xl p-2 text-center" style={{ background: '#F5F7F5', border: '1px solid #E2E4DE' }}>
                       <div className="text-sm font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>{val}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+                      <div className="text-[10px] text-muted-foreground">{label}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
+
         </div>
       </div>
     </Layout>
