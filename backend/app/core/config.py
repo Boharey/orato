@@ -1,13 +1,3 @@
-# import os
-# from dotenv import load_dotenv
-# from pathlib import Path
-
-
-
-# SECRET_KEY = os.environ.get("JWT_SECRET", "change-this-key-to-a-long-secure-one")
-# ALGORITHM = "HS256"
-
-
 import os
 import secrets
 from dotenv import load_dotenv
@@ -34,3 +24,5 @@ if len(SECRET_KEY) < 32:
     raise RuntimeError(
         "JWT_SECRET is too short. Use at least 32 characters (ideally 64+)."
     )
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", "120"))
