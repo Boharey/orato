@@ -22,9 +22,9 @@ import { ScenarioDetail } from './pages/ScenarioDetail';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -87,10 +87,11 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <Toaster position="top-right" />
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+          <Toaster position="top-right" />
+        </BrowserRouter>
+      </AuthProvider>
+    
   );
 }
 

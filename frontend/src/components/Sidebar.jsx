@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Home, BarChart2, Video, BookOpen, User, LogOut, Menu, X, ClipboardList } from 'lucide-react';
+import { Sun, Moon, Monitor } from 'lucide-react';
 
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  
 
   const handleLogout = () => {
     logout();

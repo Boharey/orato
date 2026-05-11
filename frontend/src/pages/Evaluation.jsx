@@ -4,7 +4,7 @@ import { Layout } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import {
   Video, Square, Play, RotateCw, Mic, Eye, Activity,
-  Brain, FileText, ChevronDown, ChevronUp, Zap, Clock, Target
+  Brain, FileText, ChevronDown, ChevronUp, Zap, Clock, Target, Upload
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -309,7 +309,7 @@ export const Evaluation = () => {
   const videoRef          = useRef(null);
   const mediaRecorderRef  = useRef(null);
   const chunksRef         = useRef([]);
-
+  const fileInputRef      = useRef(null);
   useEffect(() => {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [stream]);
@@ -373,8 +373,15 @@ export const Evaluation = () => {
       });
       setResults(data);
       toast.success('Analysis complete!');
-    } catch {
-      toast.error('Analysis failed');
+    } catch (err) {
+      const msg = err?.response?.data?.detail;
+      toast.error(msg || 'Analysis failed');
+      if (msg?.includes('audio')) {
+        setRecordedBlob(null);
+        if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
+        if (videoRef.current) videoRef.current.src = '';
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -382,14 +389,41 @@ export const Evaluation = () => {
 
   const reset = () => {
     setRecordedBlob(null); setResults(null);
-    if (videoRef.current) { videoRef.current.src = null; videoRef.current.srcObject = null; }
+    if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
+    if (videoRef.current) { videoRef.current.src = ''; videoRef.current.srcObject = null; }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const playRecording = () => {
-    if (recordedBlob && videoRef.current) {
-      videoRef.current.src = URL.createObjectURL(recordedBlob);
-      videoRef.current.play();
+    if (!recordedBlob || !videoRef.current) return;
+    if (!objectUrlRef.current) {
+      objectUrlRef.current = URL.createObjectURL(recordedBlob);
     }
+    const vid = videoRef.current;
+    if (vid.src !== objectUrlRef.current) {
+      vid.src = objectUrlRef.current;
+      vid.load();
+    }
+    vid.addEventListener('loadeddata', () => { vid.play(); }, { once: true });
+  };
+
+
+  const MAX_FILE_MB = 200;
+  const objectUrlRef = useRef(null);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`File too large. Max size is ${MAX_FILE_MB} MB.`);
+      e.target.value = '';
+      return;
+    }
+    const blob = new Blob([file], { type: file.type });
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = URL.createObjectURL(blob);
+    setRecordedBlob(blob);
+    toast.success('Video loaded — ready to analyze');
   };
 
   // Helper to determine grade based on value and ranges (similar to original logic)
@@ -465,7 +499,8 @@ export const Evaluation = () => {
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl overflow-hidden aspect-video relative">
               <video ref={videoRef} data-testid="evaluation-video"
-                className="w-full h-full object-cover bg-black" playsInline />
+                className="w-full h-full object-cover bg-black" playsInline
+                onError={() => {}} />
               {!recording && !recordedBlob && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-3">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(46,79,79,.1)' }}>
@@ -483,13 +518,28 @@ export const Evaluation = () => {
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
             </div>
 
-            <div className="flex gap-2.5">
+            <div className="flex gap-2.5 flex-wrap">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+
               {!recording && !recordedBlob && (
-                <button onClick={startRecording} data-testid="start-recording-btn"
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
-                  style={{ background: '#FF6B35' }}>
-                  <Video className="w-4 h-4" /> Start Recording
-                </button>
+                <>
+                  <button onClick={startRecording} data-testid="start-recording-btn"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
+                    style={{ background: '#FF6B35' }}>
+                    <Video className="w-4 h-4" /> Start Recording
+                  </button>
+                  <button onClick={() => fileInputRef.current?.click()} data-testid="upload-video-btn"
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm border border-border bg-card text-foreground hover:bg-muted transition-all">
+                    <Upload className="w-4 h-4" /> Upload Video
+                  </button>
+                </>
               )}
               {recording && (
                 <button onClick={stopRecording} data-testid="stop-recording-btn"

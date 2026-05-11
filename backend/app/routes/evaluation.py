@@ -99,6 +99,12 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
         f.write(content)
 
     await convert_to_wav(webm_path, wav_path)
+    if not os.path.exists(wav_path):
+        for p in [webm_path]:
+            try: os.remove(p)
+            except OSError: pass
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="Could not extract audio from video. Please ensure the video has an audio track.")
 
     user_doc         = await db.users.find_one({"_id": user["id"]})
     user_calibration = user_doc.get("gaze_calibration") if user_doc else None
@@ -115,7 +121,8 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
 
     transcript    = audio_result.get("transcript", "")
     total_fillers = audio_result["total_fillers"]
-    word_count    = audio_result.get("word_count", max(len(transcript.split()), 1))
+    word_count    = audio_result.get("word_count", len(transcript.split()))
+    word_count    = word_count if word_count > 0 else 1
     filler_pct    = round((total_fillers / word_count) * 100, 2)
     scoring       = compute_combined_score(audio_result, video_result)
 
