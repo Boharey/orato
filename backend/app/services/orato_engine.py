@@ -8,9 +8,25 @@ import re
 import numpy as np
 from collections import Counter
 
-MODEL = WhisperModel("base", device="cpu", compute_type="int8")
+MODEL = WhisperModel("small", device="cpu", compute_type="int8")
+TRANSCRIBE_PROMPT = (
+    "This is verbatim spoken English. "
+    "Transcribe every word exactly as spoken, including filler words like "
+    "um, uh, ah, er, like, you know, I mean, sort of, kind of, well, right, okay. "
+    "Do not clean or edit the speech. Add punctuation at sentence boundaries."
+)
 
-FILLERS            = ["um", "uh", "like", "you know", "actually", "basically", "so"]
+FILLERS = [
+    # Hesitation sounds
+    "um", "uh", "ah", "er", "hmm",
+    # Discourse fillers
+    "like", "you know", "i mean", "you see",
+    "sort of", "kind of", "basically", "actually",
+    "literally", "honestly", "so", "well", "right", "okay",
+]
+# Multi-word fillers checked separately (order matters — longest first)
+MULTI_WORD_FILLERS = ["you know", "i mean", "you see", "sort of", "kind of"]
+
 LONG_PAUSE_THRESH  = 1.5   # seconds — real disruptive pauses
 SHORT_PAUSE_THRESH = 0.3   # seconds — natural breath pauses
 IDEAL_WPM_LOW      = 120
@@ -47,15 +63,34 @@ def _repeated_phrases(words: list, min_n: int = 3, min_count: int = 2) -> list:
 
 
 def _pace_variation(segments) -> float:
-    seg_wpms = []
+    """
+    Merge consecutive segments into ~3s windows before computing WPM std dev.
+    Avoids unreliable WPM from very short segments.
+    """
+    MIN_WINDOW = 2.5  # seconds
+    windows = []
+    buf_words, buf_start, buf_end = 0, None, None
+
     for s in segments:
         dur = s.end - s.start
-        if dur > 0.5:
-            w = len(s.text.split())
-            seg_wpms.append((w / dur) * 60)
-    if len(seg_wpms) < 2:
+        if dur <= 0:
+            continue
+        w = len(s.text.split())
+        if buf_start is None:
+            buf_start = s.start
+        buf_words += w
+        buf_end    = s.end
+        if (buf_end - buf_start) >= MIN_WINDOW:
+            windows.append((buf_words / (buf_end - buf_start)) * 60)
+            buf_words, buf_start, buf_end = 0, None, None
+
+    # flush remainder if long enough
+    if buf_start is not None and (buf_end - buf_start) >= 1.0:
+        windows.append((buf_words / (buf_end - buf_start)) * 60)
+
+    if len(windows) < 2:
         return 0.0
-    return round(float(np.std(seg_wpms)), 2)
+    return round(float(np.std(windows)), 2)
 
 
 def _empty_result() -> dict:
@@ -93,12 +128,11 @@ def analyze_audio(file_path: str) -> dict:
         segments_gen, info = MODEL.transcribe(
             file_path,
             language="en",
-            temperature=0.2,
+            temperature=0.0,
             word_timestamps=True,
-            initial_prompt=(
-                "This is a spoken English conversation. "
-                "The speaker may use filler words like um, uh, like, or you know."
-            ),
+            initial_prompt=TRANSCRIBE_PROMPT,
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 300},
         )
         segments = list(segments_gen)
     except Exception as e:
@@ -154,11 +188,19 @@ def analyze_audio(file_path: str) -> dict:
     short_pauses = 0
 
     for i in range(1, len(all_words)):
-        gap = all_words[i]["start"] - all_words[i - 1]["end"]
+        prev_end   = all_words[i - 1]["end"]
+        curr_start = all_words[i]["start"]
+        gap        = curr_start - prev_end
+
+        # Skip unreliable gaps: negative (timestamp error) or
+        # cross-segment jumps > 10s (likely silence/skip in audio)
+        if gap <= 0 or gap > 10.0:
+            continue
+
         if gap >= LONG_PAUSE_THRESH:
             long_pauses.append({
-                "start":    round(all_words[i - 1]["end"], 2),
-                "end":      round(all_words[i]["start"], 2),
+                "start":    round(prev_end, 2),
+                "end":      round(curr_start, 2),
                 "duration": round(gap, 2),
             })
         elif gap >= SHORT_PAUSE_THRESH:
@@ -175,20 +217,42 @@ def analyze_audio(file_path: str) -> dict:
     speech_ratio      = round(speech_time / duration, 3)
     articulation_rate = round((word_count / speech_time) * 60, 2)
 
-    # ── Fillers (word-boundary regex) ─────────────────────────────────────────
-    filler_count = {}
-    for f in FILLERS:
+    # ── Fillers — multi-word first to avoid double-counting ───────────────────
+    filler_count  = {}
+    scrubbed_text = text  # we'll remove found multi-word fillers before single scan
+
+    for f in MULTI_WORD_FILLERS:
         pattern = r'\b' + re.escape(f) + r'\b'
-        c = len(re.findall(pattern, text))
+        c = len(re.findall(pattern, scrubbed_text))
+        if c:
+            filler_count[f]  = c
+            scrubbed_text    = re.sub(pattern, '', scrubbed_text)
+
+    for f in FILLERS:
+        if f in MULTI_WORD_FILLERS:
+            continue
+        pattern = r'\b' + re.escape(f) + r'\b'
+        c = len(re.findall(pattern, scrubbed_text))
         if c:
             filler_count[f] = c
+
     total_fillers = sum(filler_count.values())
     filler_rate   = round((total_fillers / word_count) * 100, 2)
 
-    # ── Vocabulary richness ────────────────────────────────────────────────────
-    content_words       = [w for w in words if len(w) > 2 and w not in FILLERS]
-    unique_content      = len(set(content_words))
-    vocabulary_richness = round(unique_content / max(len(content_words), 1), 3)
+    # ── Vocabulary richness (MATTR — length-normalised) ───────────────────────
+    content_words = [w for w in words if len(w) > 2 and w not in FILLERS]
+    if len(content_words) >= 50:
+        try:
+            from lexicalrichness import LexicalRichness
+            lex = LexicalRichness(" ".join(content_words))
+            vocabulary_richness = round(lex.mattr(window_size=25), 3)
+        except Exception:
+            unique_content      = len(set(content_words))
+            vocabulary_richness = round(unique_content / max(len(content_words), 1), 3)
+    else:
+        # Too short for MATTR — fall back to plain TTR
+        unique_content      = len(set(content_words))
+        vocabulary_richness = round(unique_content / max(len(content_words), 1), 3)
 
     # ── Sentence metrics ──────────────────────────────────────────────────────
     sentences        = _sentences(text)

@@ -47,4 +47,5 @@ dependencies = [
     "setuptools>=69.0.0",                  # build tool, not runtime but listed previously
     "typing_extensions>=4.10.0",           # sometimes used directly
     "slowapi>=0.1.9",
+    "lexicalrichness>=0.5.1",
 ]
