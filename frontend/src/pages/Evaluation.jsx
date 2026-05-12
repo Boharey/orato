@@ -94,6 +94,43 @@ const STYLES = `
   .ev-script-area::placeholder { color:#A0A8A0; }
 
   .ev-analyzing-step { animation: ev-fadeUp .3s ease both; }
+
+  .ev-script-overlay {
+    position: absolute;
+    top: 8px; bottom: 8px; left: 8px; right: 8px;
+    z-index: 5;
+    padding: 12px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.3s ease;
+  }
+  .ev-script-overlay textarea {
+    background: transparent;
+    color: #fff;
+    border: none;
+    padding: 4px 2px;
+    font-size: 14px;
+    line-height: 1.8;
+    font-family: 'DM Mono', monospace;
+    width: 100%;
+    flex: 1;
+    resize: none;
+    outline: none;
+    overflow-y: auto;
+  }
+  .ev-script-overlay textarea::placeholder { color: rgba(255,255,255,0.4); }
+  .ev-script-overlay-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
 `;
 
 /* ─── Communication facts ────────────────────────────────────────────────── */
@@ -295,6 +332,72 @@ const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedb
     </div>
   );
 };
+
+
+/* ─── Video playback controls ───────────────────────────────────────────── */
+const VideoControls = ({ videoRef }) => {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const onPlay    = () => setPlaying(true);
+    const onPause   = () => setPlaying(false);
+    const onEnded   = () => setPlaying(false);
+    const onTime    = () => setProgress(vid.currentTime);
+    const onLoaded  = () => setDuration(vid.duration);
+    vid.addEventListener('play',             onPlay);
+    vid.addEventListener('pause',            onPause);
+    vid.addEventListener('ended',            onEnded);
+    vid.addEventListener('timeupdate',       onTime);
+    vid.addEventListener('loadedmetadata',   onLoaded);
+    return () => {
+      vid.removeEventListener('play',           onPlay);
+      vid.removeEventListener('pause',          onPause);
+      vid.removeEventListener('ended',          onEnded);
+      vid.removeEventListener('timeupdate',     onTime);
+      vid.removeEventListener('loadedmetadata', onLoaded);
+    };
+  }, [videoRef]);
+
+  const toggle = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.paused ? vid.play() : vid.pause();
+  };
+
+  const fmt = (s) => {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 z-10 px-4 py-3"
+      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }}>
+      <input
+        type="range" min={0} max={duration || 1} step={0.1}
+        value={progress}
+        onChange={e => { if (videoRef.current) videoRef.current.currentTime = e.target.value; }}
+        className="w-full h-1 mb-2 cursor-pointer accent-white"
+        style={{ accentColor: '#FF6B35' }}
+      />
+      <div className="flex items-center gap-3">
+        <button onClick={toggle}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+          {playing
+            ? <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/></svg>
+            : <Play className="w-4 h-4" />}
+        </button>
+        <span className="text-white text-xs font-mono">{fmt(progress)} / {fmt(duration)}</span>
+        <span className="ml-auto text-white/50 text-[10px]">Space to pause · Enter to analyze</span>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Main component ─────────────────────────────────────────────────────── */
 export const Evaluation = () => {
   const [recording, setRecording]       = useState(false);
@@ -321,6 +424,32 @@ export const Evaluation = () => {
       setScriptOpen(true);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+      if (e.code === 'Space' && recordedBlob && !analyzing) {
+        e.preventDefault();
+        const vid = videoRef.current;
+        if (!vid) return;
+        if (vid.paused) {
+          if (!objectUrlRef.current) objectUrlRef.current = URL.createObjectURL(recordedBlob);
+          if (vid.src !== objectUrlRef.current) { vid.src = objectUrlRef.current; vid.load(); }
+          vid.addEventListener('loadeddata', () => vid.play(), { once: true });
+          if (!vid.paused) vid.play();
+        } else {
+          vid.pause();
+        }
+      }
+      if (e.code === 'Enter' && recordedBlob && !results && !analyzing) {
+        e.preventDefault();
+        analyzeRecording();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [recordedBlob, analyzing, results]);
 
   const startRecording = async () => {
     try {
@@ -495,6 +624,7 @@ export const Evaluation = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+
           {/* LEFT COLUMN: video, controls, transcript */}
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl overflow-hidden aspect-video relative">
@@ -515,7 +645,22 @@ export const Evaluation = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> REC
                 </div>
               )}
+              {script && !recordedBlob && !analyzing && (
+                <div className="ev-script-overlay" style={{ opacity: recording ? 0.35 : 1 }}>
+                  <p className="ev-script-overlay-label">📄 Script — {recording ? 'glance only' : 'editing enabled'}</p>
+                  <textarea
+                    value={script}
+                    onChange={e => setScript(e.target.value)}
+                    placeholder="Your script will appear here..."
+                    readOnly={recording}
+                  />
+                </div>
+              )}
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
+
+              {recordedBlob && !analyzing && (
+                <VideoControls videoRef={videoRef} />
+              )}
             </div>
 
             <div className="flex gap-2.5 flex-wrap">
@@ -583,9 +728,9 @@ export const Evaluation = () => {
             )}
           </div>
 
-          {/* RIGHT COLUMN: Script always on top, results below (SIMPLIFIED) */}
+          {/* RIGHT COLUMN: Script entry when not recording, results below */}
           <div className="space-y-4">
-            <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />
+            {!recording && <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />}
 
             {results ? (
               <div className="ev-result-enter bg-card border border-border rounded-2xl p-5 space-y-4" data-testid="evaluation-results">
