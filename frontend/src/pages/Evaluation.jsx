@@ -335,38 +335,63 @@ const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedb
 
 
 /* ─── Video playback controls ───────────────────────────────────────────── */
-const VideoControls = ({ videoRef }) => {
-  const [playing, setPlaying] = useState(false);
+const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
+  const [playing, setPlaying]   = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  const ensureLoaded = (vid, cb) => {
+    if (vid.readyState >= 2) { cb(); return; }
+    vid.addEventListener('canplay', cb, { once: true });
+    if (!objectUrlRef.current && recordedBlob) {
+      objectUrlRef.current = URL.createObjectURL(recordedBlob);
+    }
+    if (vid.src !== objectUrlRef.current) {
+      vid.src = objectUrlRef.current;
+      vid.load();
+    }
+  };
+
+  const toggle = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      ensureLoaded(vid, () => vid.play().catch(() => {}));
+    } else {
+      vid.pause();
+    }
+  };
 
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
     const onPlay    = () => setPlaying(true);
-    const onPause   = () => setPlaying(false);
+    const onPause   = () => { setPlaying(false); };
     const onEnded   = () => setPlaying(false);
     const onTime    = () => setProgress(vid.currentTime);
-    const onLoaded  = () => setDuration(vid.duration);
-    vid.addEventListener('play',             onPlay);
-    vid.addEventListener('pause',            onPause);
-    vid.addEventListener('ended',            onEnded);
-    vid.addEventListener('timeupdate',       onTime);
-    vid.addEventListener('loadedmetadata',   onLoaded);
+    const onMeta    = () => setDuration(vid.duration);
+    vid.addEventListener('play',            onPlay);
+    vid.addEventListener('pause',           onPause);
+    vid.addEventListener('ended',           onEnded);
+    vid.addEventListener('timeupdate',      onTime);
+    vid.addEventListener('loadedmetadata',  onMeta);
+    // auto-load src so clicking the overlay works immediately
+    if (objectUrlRef.current && vid.src !== objectUrlRef.current) {
+      vid.src = objectUrlRef.current;
+      vid.load();
+    } else if (!objectUrlRef.current && recordedBlob) {
+      objectUrlRef.current = URL.createObjectURL(recordedBlob);
+      vid.src = objectUrlRef.current;
+      vid.load();
+    }
     return () => {
       vid.removeEventListener('play',           onPlay);
       vid.removeEventListener('pause',          onPause);
       vid.removeEventListener('ended',          onEnded);
       vid.removeEventListener('timeupdate',     onTime);
-      vid.removeEventListener('loadedmetadata', onLoaded);
+      vid.removeEventListener('loadedmetadata', onMeta);
     };
-  }, [videoRef]);
-
-  const toggle = () => {
-    const vid = videoRef.current;
-    if (!vid) return;
-    vid.paused ? vid.play() : vid.pause();
-  };
+  }, [videoRef, recordedBlob]);
 
   const fmt = (s) => {
     if (!s || isNaN(s)) return '0:00';
@@ -375,26 +400,43 @@ const VideoControls = ({ videoRef }) => {
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 px-4 py-3"
-      style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }}>
-      <input
-        type="range" min={0} max={duration || 1} step={0.1}
-        value={progress}
-        onChange={e => { if (videoRef.current) videoRef.current.currentTime = e.target.value; }}
-        className="w-full h-1 mb-2 cursor-pointer accent-white"
-        style={{ accentColor: '#FF6B35' }}
+    <>
+      {/* click anywhere on video to toggle play/pause */}
+      <div className="absolute inset-0 z-[8] cursor-pointer"
+        onClick={toggle}
+        style={{ background: 'transparent' }}
       />
-      <div className="flex items-center gap-3">
-        <button onClick={toggle}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-          {playing
-            ? <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/></svg>
-            : <Play className="w-4 h-4" />}
-        </button>
-        <span className="text-white text-xs font-mono">{fmt(progress)} / {fmt(duration)}</span>
-        <span className="ml-auto text-white/50 text-[10px]">Space to pause · Enter to analyze</span>
+      {/* centre play icon shown when paused */}
+      {!playing && (
+        <div className="absolute inset-0 z-[9] flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+            <Play className="w-6 h-6 text-white ml-1" />
+          </div>
+        </div>
+      )}
+      {/* bottom bar */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pt-6 pb-3"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)' }}>
+        <input
+          type="range" min={0} max={duration || 1} step={0.1}
+          value={progress}
+          onChange={e => { if (videoRef.current) videoRef.current.currentTime = e.target.value; }}
+          className="w-full h-1 mb-2 cursor-pointer"
+          style={{ accentColor: '#FF6B35' }}
+        />
+        <div className="flex items-center gap-3">
+          <button onClick={e => { e.stopPropagation(); toggle(); }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors flex-shrink-0">
+            {playing
+              ? <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/></svg>
+              : <Play className="w-3.5 h-3.5 ml-0.5" />}
+          </button>
+          <span className="text-white text-xs font-mono">{fmt(progress)} / {fmt(duration)}</span>
+          <span className="ml-auto text-white/50 text-[10px]">Space · Enter to analyze</span>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -432,15 +474,10 @@ export const Evaluation = () => {
       if (e.code === 'Space' && recordedBlob && !analyzing) {
         e.preventDefault();
         const vid = videoRef.current;
-        if (!vid) return;
-        if (vid.paused) {
-          if (!objectUrlRef.current) objectUrlRef.current = URL.createObjectURL(recordedBlob);
-          if (vid.src !== objectUrlRef.current) { vid.src = objectUrlRef.current; vid.load(); }
-          vid.addEventListener('loadeddata', () => vid.play(), { once: true });
-          if (!vid.paused) vid.play();
-        } else {
-          vid.pause();
-        }
+        if (!vid || !objectUrlRef.current) return;
+        vid.paused
+          ? vid.play().catch(() => {})
+          : vid.pause();
       }
       if (e.code === 'Enter' && recordedBlob && !results && !analyzing) {
         e.preventDefault();
@@ -532,8 +569,14 @@ export const Evaluation = () => {
     if (vid.src !== objectUrlRef.current) {
       vid.src = objectUrlRef.current;
       vid.load();
+      vid.addEventListener('canplay', () => {
+        vid.play().catch(() => {});
+      }, { once: true });
+    } else {
+      vid.paused
+        ? vid.play().catch(() => {})
+        : vid.pause();
     }
-    vid.addEventListener('loadeddata', () => { vid.play(); }, { once: true });
   };
 
 
@@ -659,7 +702,7 @@ export const Evaluation = () => {
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
 
               {recordedBlob && !analyzing && (
-                <VideoControls videoRef={videoRef} />
+                <VideoControls videoRef={videoRef} objectUrlRef={objectUrlRef} recordedBlob={recordedBlob} />
               )}
             </div>
 
