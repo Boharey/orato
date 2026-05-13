@@ -1,0 +1,125 @@
+{
+  "wer": 0.17233560090702948,
+  "per_sample": [
+    {
+      "reference": "concord returned to its place amidst the tents",
+      "transcribed": "concord return to its place amidst the tense.",
+      "wer": 0.25,
+      "final_score": 100.0
+    },
+    {
+      "reference": "the english forwarded to the french baskets of flowers of which they had made a plentiful provision to greet the arrival of the young princess the french in return invited the english to a supper which was to be given the next day",
+      "transcribed": "the english voted to the french baskets of flowers of which they had made a plentiful provision to greet the arrival of the young princess. the french, in return, invited the english to a supper, which was to be given the next day.",
+      "wer": 0.1395,
+      "final_score": 85.0
+    },
+    {
+      "reference": "congratulations were poured in upon the princess everywhere during her journey",
+      "transcribed": "congratulations were poured in upon the princess everywhere during her journey.",
+      "wer": 0.0909,
+      "final_score": 100.0
+    },
+    {
+      "reference": "from the respect paid her on all sides she seemed like a queen and from the adoration with which she was treated by two or three she appeared an object of worship the queen mother gave the french the most affectionate reception france was her native country and she had suffered too much unhappiness in england for england to have made her forget france",
+      "transcribed": "from the respect paid her on all sides, she seemed like a queen, and from the adoration with which she was treated by two or three, she appeared an object of worship. the queen mother gave the french the most affectionate reception. france was her native country, and she had suffered too much unhappiness in england for england to have made her forget france.",
+      "wer": 0.1094,
+      "final_score": 91.3
+    },
+    {
+      "reference": "she taught her daughter then by her own affection for it that love for a country where they had both been hospitably received and where a brilliant future opened before them",
+      "transcribed": "she taught her daughter, then, by her own affection for it, that loved for a country where they had both been hospitably received and where a brilliant future opened for them.",
+      "wer": 0.1935,
+      "final_score": 92.5
+    },
+    {
+      "reference": "the count had thrown himself back on his seat leaning his shoulders against the partition of the tent and remained thus his face buried in his hands with heaving chest and restless limbs",
+      "transcribed": "the count had thrown himself back on his seat, leaning his shoulders against the partition of the tent and remained thus, his face buried in his hands with heaving chest and restless limbs.",
+      "wer": 0.0909,
+      "final_score": 100.0
+    },
+    {
+      "reference": "this has indeed been a harassing day continued the young man his eyes fixed upon his friend",
+      "transcribed": "this has indeed been a harassing day, continued the young man, his eyes fixed upon his friend.",
+      "wer": 0.1765,
+      "final_score": 85.0
+    },
+    {
+      "reference": "you will be frank with me i always am",
+      "transcribed": "you will be frank with me. i always am.",
+      "wer": 0.2222,
+      "final_score": 85.0
+    },
+    {
+      "reference": "can you imagine why buckingham has been so violent i suspect",
+      "transcribed": "can you imagine why buckingham has been so violent? i suspect.",
+      "wer": 0.1818,
+      "final_score": 91.3
+    },
+    {
+      "reference": "it is you who are mistaken raoul i have read his distress in his eyes in his every gesture and action the whole day",
+      "transcribed": "it is you who are mistaken, raoul. i have read his distress in his eyes, in his every gesture and action the whole day.",
+      "wer": 0.1667,
+      "final_score": 77.5
+    },
+    {
+      "reference": "i can perceive love clearly enough",
+      "transcribed": "i can perceive love clearly enough.",
+      "wer": 0.1667,
+      "final_score": 100.0
+    },
+    {
+      "reference": "i am convinced of what i say said the count",
+      "transcribed": "i am convinced of what i say, said the count.",
+      "wer": 0.2,
+      "final_score": 77.5
+    },
+    {
+      "reference": "it is annoyance then",
+      "transcribed": "it is annoyance, then.",
+      "wer": 0.5,
+      "final_score": 100.0
+    },
+    {
+      "reference": "in those very terms i even added more",
+      "transcribed": "in those very terms, i even added more.",
+      "wer": 0.25,
+      "final_score": 85.0
+    },
+    {
+      "reference": "but continued raoul not interrupted by this movement of his friend heaven be praised the french who are pronounced to be thoughtless and indiscreet reckless even are capable of bringing a calm and sound judgment to bear on matters of such high importance",
+      "transcribed": "but, continued row, not interrupted by this movement of his friend, heaven be praised, the french, who are pronounced to be thoughtless and indiscreet, reckless even, are capable of bringing a calm and sound judgment to bear on matters of such high importance.",
+      "wer": 0.186,
+      "final_score": 100.0
+    },
+    {
+      "reference": "thus it is that the honor of three is saved our country's our master's and our own",
+      "transcribed": "thus, it is that the honor of three is saved, our country, our masters, and our own.",
+      "wer": 0.2941,
+      "final_score": 92.5
+    },
+    {
+      "reference": "yes i need repose many things have agitated me to day both in mind and body when you return to morrow i shall no longer be the same man",
+      "transcribed": "yes, i need repose. many things have agitated me today, both in mind and body. when you return tomorrow, i shall no longer be the same man.",
+      "wer": 0.2759,
+      "final_score": 92.5
+    },
+    {
+      "reference": "but in this friendly pressure raoul could detect the nervous agitation of a great internal conflict",
+      "transcribed": "but in this friendly pressure, raoul could detect the nervous agitation of a great internal conflict.",
+      "wer": 0.125,
+      "final_score": 92.5
+    },
+    {
+      "reference": "the night was clear starlit and splendid the tempest had passed away and the sweet influences of the evening had restored life peace and security everywhere",
+      "transcribed": "the night was clear. starlet and splendid. the tempest had passed away, and the sweet influences of the evening had restored life, peace, and security everywhere.",
+      "wer": 0.2692,
+      "final_score": 100.0
+    },
+    {
+      "reference": "upon the large square in front of the hotel the shadows of the tents intersected by the golden moonbeams formed as it were a huge mosaic of jet and yellow flagstones",
+      "transcribed": "upon the large square in front of the hotel, the shadows of the tents intersected by the golden moonbeams formed as it were, a huge mosaic of jet and yellow flagstones.",
+      "wer": 0.0968,
+      "final_score": 92.5
+    }
+  ]
+}

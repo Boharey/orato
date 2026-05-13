@@ -48,4 +48,7 @@ dependencies = [
     "typing_extensions>=4.10.0",           # sometimes used directly
     "slowapi>=0.1.9",
     "lexicalrichness>=0.5.1",
+    "jiwer>=4.0.0",
+    "datasets>=4.8.5",
+    "soundfile>=0.13.1",
 ]

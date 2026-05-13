@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-/* ─── Styles (unchanged, but we add a simpler result row style) ───────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 
@@ -21,8 +20,7 @@ const STYLES = `
   @keyframes ev-pop    { 0%{transform:scale(.8);opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
 
   .ev-result-enter { animation: ev-fadeUp .4s ease both; }
-  
-  /* NEW simple result row style */
+
   .ev-result-row {
     display: flex;
     justify-content: space-between;
@@ -30,34 +28,16 @@ const STYLES = `
     padding: 12px 0;
     border-bottom: 1px solid #E2E4DE;
   }
-  .ev-result-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #5A6A5A;
-  }
-  .ev-result-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1F2E2E;
-    font-family: 'Playfair Display', serif;
-  }
-  .ev-filler-list {
-    margin-top: 4px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-      .ev-score-ring-wrap {
+  .ev-result-label { font-size: 13px; font-weight: 500; color: #5A6A5A; }
+  .ev-result-value { font-size: 18px; font-weight: 700; color: #1F2E2E; font-family: 'Playfair Display', serif; }
+  .ev-filler-list  { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .ev-score-ring-wrap {
     position: relative; width: 82px; height: 82px;
     display: flex; align-items: center; justify-content: center;
   }
-  .ev-score-ring-wrap svg {
-    position: absolute; inset: 0; transform: rotate(-90deg);
-  }
-  .ev-score-num {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px; font-weight: 900;
-  }
+  .ev-score-ring-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ev-score-num { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 900; }
 
   .ev-demo-bar-track { background:#F1F3F1; border-radius:999px; height:4px; overflow:hidden; }
   .ev-demo-bar-fill  { height:100%; border-radius:999px; transition:width .6s ease; }
@@ -65,18 +45,12 @@ const STYLES = `
   @keyframes demo-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   .ev-demo-pulse { animation: demo-pulse 1.2s ease-in-out infinite; }
   .ev-filler-badge {
-    background: #fef3c7;
-    color: #92400e;
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 600;
+    background: #fef3c7; color: #92400e;
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 12px; font-weight: 600;
   }
 
-  .ev-grade-dot {
-    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    box-shadow: 0 0 6px currentColor;
-  }
+  .ev-grade-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:0 0 6px currentColor; }
   .ev-grade-good    { background:#22c55e; color:#22c55e; }
   .ev-grade-warning { background:#f59e0b; color:#f59e0b; }
   .ev-grade-bad     { background:#ef4444; color:#ef4444; }
@@ -108,66 +82,34 @@ const STYLES = `
     transition: opacity 0.3s ease;
   }
   .ev-script-overlay textarea {
-    background: transparent;
-    color: #fff;
-    border: none;
-    padding: 4px 2px;
-    font-size: 14px;
-    line-height: 1.8;
+    background: transparent; color: #fff; border: none;
+    padding: 4px 2px; font-size: 14px; line-height: 1.8;
     font-family: 'DM Mono', monospace;
-    width: 100%;
-    flex: 1;
-    resize: none;
-    outline: none;
-    overflow-y: auto;
+    width: 100%; flex: 1; resize: none; outline: none; overflow-y: auto;
   }
   .ev-script-overlay textarea::placeholder { color: rgba(255,255,255,0.4); }
   .ev-script-overlay-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 6px;
-    flex-shrink: 0;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: rgba(255,255,255,0.5);
+    margin-bottom: 6px; flex-shrink: 0;
   }
+
+  .ev-metric-enter { animation: ev-fadeUp .4s ease both; }
 `;
 
-/* ─── Communication facts ────────────────────────────────────────────────── */
 const FACTS = [
-  "A single well‑placed pause can boost your perceived confidence by 20%.",
+  "A single well-placed pause can boost your perceived confidence by 20%.",
   "Speakers who maintain eye contact are rated as 30% more trustworthy.",
   "Slowing down just 10% makes you sound more authoritative and clear.",
-  "Listeners remember the first and last thing you say best – nail your opener and close.",
-  "The average listener's attention starts to drift after just 10 seconds – use changes in pace to recapture it.",
+  "Listeners remember the first and last thing you say best — nail your opener and close.",
+  "The average listener's attention starts to drift after just 10 seconds — use changes in pace to recapture it.",
   "Using hand gestures while you speak actually helps you think more clearly.",
   "A smile while speaking makes your voice sound warmer and more engaging.",
   "Your filler words drop by 50% when you practice with a script first.",
   "Recording yourself just once can instantly reveal 3 habits you never noticed.",
-  "The ideal speaking rate for comprehension is 120–160 words per minute.",
+  "The ideal speaking rate for comprehension is 120-160 words per minute.",
 ];
 
-/* ─── Simple result row component ───────────────────────────────────────── */
-const ResultRow = ({ label, value, unit, grade }) => {
-  let gradeColor = "";
-  if (grade === "good") gradeColor = "#22c55e";
-  else if (grade === "warning") gradeColor = "#f59e0b";
-  else if (grade === "bad") gradeColor = "#ef4444";
-  else gradeColor = "#9ca3af";
-  
-  return (
-    <div className="ev-result-row">
-      <span className="ev-result-label">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className="ev-result-value">{value ?? '—'}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
-        <span className="ev-grade-dot" style={{ background: gradeColor }} />
-      </div>
-    </div>
-  );
-};
-
-/* ─── Transcript (unchanged) ────────────────────────────────────────────── */
 const FILLERS_SET = new Set(['um','uh','like','you know','actually','basically','so']);
 
 const Transcript = ({ transcript, fillerWords }) => {
@@ -212,7 +154,6 @@ const Transcript = ({ transcript, fillerWords }) => {
   );
 };
 
-/* ─── Analyzing overlay (unchanged) ─────────────────────────────────────── */
 const AnalyzingOverlay = ({ fact }) => {
   const steps = [
     { icon: Mic,      label: 'Transcribing speech...' },
@@ -246,14 +187,14 @@ const AnalyzingOverlay = ({ fact }) => {
       </div>
       <div className="mt-4 px-6 max-w-xs text-center" style={{ animation: 'ev-fadeUp 0.6s ease both' }}>
         <span className="text-[11px] text-white/80 italic leading-snug">
-          💡 {fact || "Did you know? \u200B"}
+          {fact || ""}
         </span>
       </div>
     </div>
   );
 };
 
-/* ─── Script panel (unchanged) ───────────────────────────────────────────── */
+
 const ScriptPanel = ({ script, setScript, visible, setVisible }) => (
   <div className="bg-card border border-border rounded-2xl overflow-hidden">
     <button
@@ -284,13 +225,11 @@ const ScriptPanel = ({ script, setScript, visible, setVisible }) => (
   </div>
 );
 
-/* ─── Animation component ─────────────────────────────────────────────────────── */
 const AnimatedScoreRing = ({ score }) => {
   const r = 33, circ = 2 * Math.PI * r;
   const pct = Math.min(100, Math.max(0, score ?? 0));
   const dash = (pct / 100) * circ;
   const color = pct >= 75 ? '#22c55e' : pct >= 55 ? '#f59e0b' : '#ef4444';
-
   return (
     <div className="ev-score-ring-wrap">
       <svg viewBox="0 0 82 82" width="82" height="82">
@@ -306,7 +245,6 @@ const AnimatedScoreRing = ({ score }) => {
 
 const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedback = '' }) => {
   const gradeColor = { good: '#22c55e', warning: '#f59e0b', bad: '#ef4444', unknown: '#9ca3af' }[grade] || '#9ca3af';
-
   return (
     <div className="ev-metric-enter" style={{ animationDelay: `${delay}s` }}>
       <div className="flex items-center justify-between mb-1">
@@ -323,8 +261,7 @@ const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedb
         {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
       </div>
       <div className="ev-demo-bar-track">
-        <div className="ev-demo-bar-fill"
-          style={{ width: `${barPct}%`, background: gradeColor }} />
+        <div className="ev-demo-bar-fill" style={{ width: `${barPct}%`, background: gradeColor }} />
       </div>
       {feedback && (
         <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{feedback}</p>
@@ -333,8 +270,6 @@ const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedb
   );
 };
 
-
-/* ─── Video playback controls ───────────────────────────────────────────── */
 const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
   const [playing, setPlaying]   = useState(false);
   const [progress, setProgress] = useState(0);
@@ -365,17 +300,16 @@ const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    const onPlay    = () => setPlaying(true);
-    const onPause   = () => { setPlaying(false); };
-    const onEnded   = () => setPlaying(false);
-    const onTime    = () => setProgress(vid.currentTime);
-    const onMeta    = () => setDuration(vid.duration);
-    vid.addEventListener('play',            onPlay);
-    vid.addEventListener('pause',           onPause);
-    vid.addEventListener('ended',           onEnded);
-    vid.addEventListener('timeupdate',      onTime);
-    vid.addEventListener('loadedmetadata',  onMeta);
-    // auto-load src so clicking the overlay works immediately
+    const onPlay   = () => setPlaying(true);
+    const onPause  = () => setPlaying(false);
+    const onEnded  = () => setPlaying(false);
+    const onTime   = () => setProgress(vid.currentTime);
+    const onMeta   = () => setDuration(vid.duration);
+    vid.addEventListener('play',           onPlay);
+    vid.addEventListener('pause',          onPause);
+    vid.addEventListener('ended',          onEnded);
+    vid.addEventListener('timeupdate',     onTime);
+    vid.addEventListener('loadedmetadata', onMeta);
     if (objectUrlRef.current && vid.src !== objectUrlRef.current) {
       vid.src = objectUrlRef.current;
       vid.load();
@@ -401,12 +335,7 @@ const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
 
   return (
     <>
-      {/* click anywhere on video to toggle play/pause */}
-      <div className="absolute inset-0 z-[8] cursor-pointer"
-        onClick={toggle}
-        style={{ background: 'transparent' }}
-      />
-      {/* centre play icon shown when paused */}
+      <div className="absolute inset-0 z-[8] cursor-pointer" onClick={toggle} style={{ background: 'transparent' }} />
       {!playing && (
         <div className="absolute inset-0 z-[9] flex items-center justify-center pointer-events-none">
           <div className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -415,7 +344,6 @@ const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
           </div>
         </div>
       )}
-      {/* bottom bar */}
       <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pt-6 pb-3"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)' }}>
         <input
@@ -440,7 +368,6 @@ const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
   );
 };
 
-/* ─── Main component ─────────────────────────────────────────────────────── */
 export const Evaluation = () => {
   const [recording, setRecording]       = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
@@ -450,15 +377,19 @@ export const Evaluation = () => {
   const [script, setScript]             = useState('');
   const [scriptOpen, setScriptOpen]     = useState(false);
   const [currentFact]                   = useState(() => FACTS[Math.floor(Math.random() * FACTS.length)]);
-   
-  const videoRef          = useRef(null);
-  const mediaRecorderRef  = useRef(null);
-  const chunksRef         = useRef([]);
-  const fileInputRef      = useRef(null);
+
+  const videoRef         = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef        = useRef([]);
+  const fileInputRef     = useRef(null);
+  const objectUrlRef     = useRef(null);
+
+  const [language, setLanguage]         = useState('en');   // for language
+
   useEffect(() => {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
   }, [stream]);
-  
+
   const location = useLocation();
   useEffect(() => {
     if (location.state?.script) {
@@ -475,9 +406,7 @@ export const Evaluation = () => {
         e.preventDefault();
         const vid = videoRef.current;
         if (!vid || !objectUrlRef.current) return;
-        vid.paused
-          ? vid.play().catch(() => {})
-          : vid.pause();
+        vid.paused ? vid.play().catch(() => {}) : vid.pause();
       }
       if (e.code === 'Enter' && recordedBlob && !results && !analyzing) {
         e.preventDefault();
@@ -521,6 +450,7 @@ export const Evaluation = () => {
     }
   };
 
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop();
@@ -534,6 +464,7 @@ export const Evaluation = () => {
     try {
       const fd = new FormData();
       fd.append('video', new File([recordedBlob], 'recording.webm', { type: 'video/webm' }));
+      fd.append('language', language); //language append
       const { data } = await axios.post(`${API_URL}/evaluation/analyze`, fd, {
         headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
@@ -554,7 +485,8 @@ export const Evaluation = () => {
   };
 
   const reset = () => {
-    setRecordedBlob(null); setResults(null);
+    setRecordedBlob(null);
+    setResults(null);
     if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
     if (videoRef.current) { videoRef.current.src = ''; videoRef.current.srcObject = null; }
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -562,26 +494,18 @@ export const Evaluation = () => {
 
   const playRecording = () => {
     if (!recordedBlob || !videoRef.current) return;
-    if (!objectUrlRef.current) {
-      objectUrlRef.current = URL.createObjectURL(recordedBlob);
-    }
+    if (!objectUrlRef.current) objectUrlRef.current = URL.createObjectURL(recordedBlob);
     const vid = videoRef.current;
     if (vid.src !== objectUrlRef.current) {
       vid.src = objectUrlRef.current;
       vid.load();
-      vid.addEventListener('canplay', () => {
-        vid.play().catch(() => {});
-      }, { once: true });
+      vid.addEventListener('canplay', () => { vid.play().catch(() => {}); }, { once: true });
     } else {
-      vid.paused
-        ? vid.play().catch(() => {})
-        : vid.pause();
+      vid.paused ? vid.play().catch(() => {}) : vid.pause();
     }
   };
 
-
   const MAX_FILE_MB = 200;
-  const objectUrlRef = useRef(null);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -598,10 +522,9 @@ export const Evaluation = () => {
     toast.success('Video loaded — ready to analyze');
   };
 
-  // Helper to determine grade based on value and ranges (similar to original logic)
   const getGrade = (metric, value) => {
     if (value == null) return 'unknown';
-    switch(metric) {
+    switch (metric) {
       case 'wpm':
         if (value >= 120 && value <= 160) return 'good';
         if (value >= 100 && value <= 180) return 'warning';
@@ -624,38 +547,105 @@ export const Evaluation = () => {
   };
 
   const getMetricFeedback = (metric, value, grade) => {
-  if (value == null) return '';
-  switch (metric) {
-    case 'wpm':
-      if (grade === 'good') return 'Your pace is ideal. Keep it up!';
-      if (grade === 'warning') return 'Try slowing down a bit for better clarity.';
-      return 'Your pace is off. Focus on controlled speaking.';
-    case 'fillers':
-      if (grade === 'good') return 'Great! Keep it up.';
-      if (grade === 'warning') return 'A few fillers, but still okay.';
-      return 'Too many fillers. Practice replacing them with pauses.';
-    case 'long_pauses':
-      if (grade === 'good') return 'Perfect! Good speech flow.';
-      if (grade === 'warning') return 'Some pauses; try to connect sentences.';
-      return 'Frequent pauses disrupt flow. Aim for smoother delivery.';
-    case 'eye_contact':
-      if (grade === 'good') return 'Excellent eye contact!';
-      if (grade === 'warning') return 'Room for improvement. Try looking at the camera more.';
-      return 'Low eye contact – work on engaging with the audience.';
-    case 'blink_rate':
-      if (grade === 'good') return 'Balanced blinking. Looks natural.';
-      if (grade === 'warning') return 'Slightly irregular blinking. Keep it natural.';
-      return 'Try to blink naturally while speaking.';
-    default:
-      return '';
-  }
-};
-  const grades = results?.grades ?? {
-    wpm: getGrade('wpm', results?.wpm),
-    fillers: getGrade('fillers', results?.filler_count),
-    eye_contact: getGrade('eye_contact', results?.gaze_on_screen_pct),
-    blink_rate: getGrade('blink_rate', results?.blink_count),
+    if (value == null) return '';
+    switch (metric) {
+      case 'wpm':
+        if (grade === 'good') return 'Your pace is ideal. Keep it up!';
+        if (grade === 'warning') return 'Try slowing down a bit for better clarity.';
+        return 'Your pace is off. Focus on controlled speaking.';
+      case 'fillers':
+        if (grade === 'good') return 'Great! Keep it up.';
+        if (grade === 'warning') return 'A few fillers, but still okay.';
+        return 'Too many fillers. Practice replacing them with pauses.';
+      case 'long_pauses':
+        if (grade === 'good') return 'Perfect! Good speech flow.';
+        if (grade === 'warning') return 'Some pauses; try to connect sentences.';
+        return 'Frequent pauses disrupt flow. Aim for smoother delivery.';
+      case 'eye_contact':
+        if (grade === 'good') return 'Excellent eye contact!';
+        if (grade === 'warning') return 'Room for improvement. Try looking at the camera more.';
+        return 'Low eye contact - work on engaging with the audience.';
+      case 'blink_rate':
+        if (grade === 'good') return 'Balanced blinking. Looks natural.';
+        if (grade === 'warning') return 'Slightly irregular blinking. Keep it natural.';
+        return 'Try to blink naturally while speaking.';
+      default:
+        return '';
+    }
   };
+
+  const grades = results?.grades ?? {
+    wpm:         getGrade('wpm',         results?.wpm),
+    fillers:     getGrade('fillers',     results?.filler_count),
+    eye_contact: getGrade('eye_contact', results?.gaze_on_screen_pct),
+    blink_rate:  getGrade('blink_rate',  results?.blink_count),
+  };
+
+  const generateFeedback = (r) => {
+    if (!r) return null;
+    const issues    = [];
+    const strengths = [];
+
+    if (r.wpm > 175)
+      issues.push({ priority: 3, icon: '⚡', title: 'Slow down', detail: `You spoke at ${Math.round(r.wpm)} WPM — too fast for comfortable listening. Aim for 120-160 WPM. Try recording again at a deliberately slower pace.` });
+    else if (r.wpm < 100)
+      issues.push({ priority: 3, icon: '⏱️', title: 'Pick up the pace', detail: `You spoke at ${Math.round(r.wpm)} WPM — too slow and may sound uncertain. Aim for 120-160 WPM.` });
+    else if (r.wpm >= 120 && r.wpm <= 160)
+      strengths.push({ icon: '✓', title: 'Great pace', detail: `${Math.round(r.wpm)} WPM — ideal for clarity and engagement.` });
+
+    if (r.filler_rate > 10) {
+      const topFillers = Object.entries(r.filler_words || {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([w]) => `"${w}"`).join(' and ');
+      issues.push({ priority: 1, icon: '🗣️', title: 'Cut the fillers', detail: `${r.filler_rate?.toFixed(1)}% of your words were fillers — ${r.filler_count} total. Most-used: ${topFillers || '"um"'}. Replace them with a deliberate 1-second pause instead.` });
+    } else if (r.filler_rate > 5)
+      issues.push({ priority: 2, icon: '🗣️', title: 'Reduce fillers', detail: `${r.filler_count} filler words (${r.filler_rate?.toFixed(1)}%). Good but room to improve. Try to eliminate your most-used ones.` });
+    else
+      strengths.push({ icon: '✓', title: 'Clean speech', detail: `Only ${r.filler_count} filler words — excellent verbal discipline.` });
+
+    const dur = r.duration || 60;
+    const pausesPerMin = (r.long_pauses / (dur / 60)).toFixed(1);
+    if (r.long_pauses > 4)
+      issues.push({ priority: 2, icon: '⏸️', title: 'Fix the dead air', detail: `${r.long_pauses} long pauses (${pausesPerMin}/min). These break your flow and signal uncertainty. Prepare your next point before finishing the current one.` });
+    else if (r.long_pauses === 0)
+      strengths.push({ icon: '✓', title: 'No dead air', detail: 'No disruptive pauses — your delivery was continuous and confident.' });
+
+    if (r.speech_ratio != null && r.speech_ratio < 0.60)
+      issues.push({ priority: 2, icon: '🎙️', title: 'Too much silence', detail: `Only ${Math.round(r.speech_ratio * 100)}% of your recording was speech. Fill the silence with preparation — know your next point before speaking.` });
+
+    if (r.vocabulary_richness != null && r.vocabulary_richness < 0.45)
+      issues.push({ priority: 3, icon: '📚', title: 'Vary your words', detail: `Vocabulary richness: ${Math.round(r.vocabulary_richness * 100)}/100. You repeated many of the same words. Try using synonyms and richer language.` });
+    else if (r.vocabulary_richness != null && r.vocabulary_richness >= 0.70)
+      strengths.push({ icon: '✓', title: 'Rich vocabulary', detail: `Vocabulary richness: ${Math.round(r.vocabulary_richness * 100)}/100 — strong word variety.` });
+
+    if (r.repeated_phrases && r.repeated_phrases.length > 0) {
+      const top = r.repeated_phrases[0];
+      issues.push({ priority: 3, icon: '🔁', title: 'Repeated phrases', detail: `You said "${top.phrase}" ${top.count} times. Repeated phrases make your delivery sound rehearsed. Vary your sentence structure.` });
+    }
+
+    if (r.gaze_on_screen_pct != null) {
+      if (r.gaze_on_screen_pct < 40)
+        issues.push({ priority: 1, icon: '👁️', title: 'Look at the camera', detail: `Only ${r.gaze_on_screen_pct}% eye contact — this is the strongest signal interviewers notice. Place a sticky note next to your camera as a visual reminder to look up.` });
+      else if (r.gaze_on_screen_pct < 60)
+        issues.push({ priority: 2, icon: '👁️', title: 'Improve eye contact', detail: `${r.gaze_on_screen_pct}% eye contact. Try to maintain camera contact for at least 70% of your answer.` });
+      else if (r.gaze_on_screen_pct >= 75)
+        strengths.push({ icon: '✓', title: 'Strong eye contact', detail: `${r.gaze_on_screen_pct}% — excellent. This builds trust with the interviewer.` });
+    }
+
+    if (r.pace_variation != null) {
+      if (r.pace_variation < 5)
+        issues.push({ priority: 3, icon: '📈', title: 'Avoid monotone delivery', detail: `Your pace had very little variation. Vary your speed — slow down for key points, speed up for context. This keeps listeners engaged.` });
+      else if (r.pace_variation >= 10 && r.pace_variation <= 35)
+        strengths.push({ icon: '✓', title: 'Engaging delivery', detail: 'Good pace variation — you naturally sped up and slowed down, keeping your delivery interesting.' });
+    }
+
+    issues.sort((a, b) => a.priority - b.priority);
+
+    return {
+      topIssues: issues.slice(0, 3),
+      strengths: strengths.slice(0, 3),
+    };
+  };
+
+  const feedback = results ? generateFeedback(results) : null;
 
   return (
     <Layout>
@@ -668,7 +658,7 @@ export const Evaluation = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
 
-          {/* LEFT COLUMN: video, controls, transcript */}
+          {/* LEFT COLUMN */}
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl overflow-hidden aspect-video relative">
               <video ref={videoRef} data-testid="evaluation-video"
@@ -690,7 +680,7 @@ export const Evaluation = () => {
               )}
               {script && !recordedBlob && !analyzing && (
                 <div className="ev-script-overlay" style={{ opacity: recording ? 0.35 : 1 }}>
-                  <p className="ev-script-overlay-label">📄 Script — {recording ? 'glance only' : 'editing enabled'}</p>
+                  <p className="ev-script-overlay-label">Script — {recording ? 'glance only' : 'editing enabled'}</p>
                   <textarea
                     value={script}
                     onChange={e => setScript(e.target.value)}
@@ -700,14 +690,12 @@ export const Evaluation = () => {
                 </div>
               )}
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
-
               {recordedBlob && !analyzing && (
                 <VideoControls videoRef={videoRef} objectUrlRef={objectUrlRef} recordedBlob={recordedBlob} />
               )}
             </div>
 
             <div className="flex gap-2.5 flex-wrap">
-              {/* Hidden file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -715,6 +703,17 @@ export const Evaluation = () => {
                 className="hidden"
                 onChange={handleFileUpload}
               />
+
+              {/* Language selector */}
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="px-3 py-3 rounded-xl border border-border bg-card text-foreground text-sm font-medium"
+                disabled={recording || analyzing}
+              >
+                <option value="en">🇬🇧 English</option>
+                <option value="ne">🇳🇵 Nepali</option>
+              </select>
 
               {!recording && !recordedBlob && (
                 <>
@@ -769,176 +768,185 @@ export const Evaluation = () => {
                 <Transcript transcript={results.transcript} fillerWords={results.filler_words} />
               </div>
             )}
-          </div>
+            
+            {/* Coach Feedback card */}
+                {feedback && (
+                  <div className="ev-result-enter bg-card border border-border rounded-2xl p-5 space-y-4" style={{ animationDelay: '0.3s' }}>
+                    <div className="flex items-center gap-2 pb-3 border-b border-border">
+                      <Brain className="w-4 h-4 text-primary" />
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Coach Feedback</p>
+                    </div>
 
-          {/* RIGHT COLUMN: Script entry when not recording, results below */}
-          <div className="space-y-4">
-            {!recording && <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />}
+                    {feedback.topIssues.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Focus on these</p>
+                        {feedback.topIssues.map((issue, i) => (
+                          <div key={i} className="flex gap-3 p-3 rounded-xl"
+                            style={{
+                              background: i === 0 ? 'rgba(239,68,68,0.06)' : i === 1 ? 'rgba(245,158,11,0.06)' : 'rgba(46,79,79,0.04)',
+                              border: `1px solid ${i === 0 ? 'rgba(239,68,68,0.15)' : i === 1 ? 'rgba(245,158,11,0.15)' : 'rgba(46,79,79,0.1)'}`
+                            }}>
+                            <span className="text-base flex-shrink-0 mt-0.5">{issue.icon}</span>
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-0.5">{issue.title}</p>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{issue.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-            {results ? (
-              <div className="ev-result-enter bg-card border border-border rounded-2xl p-5 space-y-4" data-testid="evaluation-results">
-                {/* Combined Score with ring */}
-                <div className="flex items-center gap-4 pb-4 border-b border-border">
-                  <AnimatedScoreRing score={results.combined_score ?? 0} />
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-0.5">Combined Score</p>
-                    <p className="text-xl font-black" style={{ fontFamily: "'Playfair Display', serif" }}>
-                      {results.combined_score >= 75 ? 'Excellent! 🥳' : results.combined_score >= 55 ? 'Great job! 👍' : results.combined_score >= 35 ? 'Fair 😊' : 'Needs Practice 💪'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {results.combined_score >= 75 ? "You're doing great – keep polishing those skills." :
-                      results.combined_score >= 55 ? "Good effort. A few tweaks and you'll be at the top." :
-                      results.combined_score >= 35 ? "You're on the right track. Keep practicing." :
-                      "Everyone starts somewhere. Regular practice will get you there."}
-                    </p>
-                  </div>
-                </div>
+                    {feedback.strengths.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">What went well</p>
+                        {feedback.strengths.map((s, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="text-green-500 text-xs font-bold mt-0.5 flex-shrink-0">{s.icon}</span>
+                            <div>
+                              <span className="text-xs font-semibold text-foreground">{s.title} </span>
+                              <span className="text-xs text-muted-foreground">{s.detail}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                {/* Animated Metric Rows */}
-                <div className="space-y-3">
-
-                  {/* ── Audio Score (new) ── */}
-                  {results.audio_score != null && (
-                    <AnimatedMetricRow
-                      label="Audio Score"
-                      value={results.audio_score} unit="/ 100"
-                      grade={results.audio_score >= 75 ? 'good' : results.audio_score >= 50 ? 'warning' : 'bad'}
-                      barPct={results.audio_score}
-                      delay={0.1}
-                      feedback={results.audio_score >= 75 ? 'Strong overall delivery.' : results.audio_score >= 50 ? 'Good effort — focus on fluency and vocabulary.' : 'Work on pace, fillers and speech continuity.'}
-                    />
-                  )}
-
-                  {/* ── Pace ── */}
-                  <AnimatedMetricRow
-                    label="Words Per Minute"
-                    value={results.wpm} unit="wpm"
-                    grade={grades.wpm}
-                    barPct={Math.min(100, (results.wpm / 220) * 100)}
-                    delay={0.2}
-                    feedback={getMetricFeedback('wpm', results.wpm, grades.wpm)}
-                  />
-
-                  {/* ── Filler Words ── */}
-                  <AnimatedMetricRow
-                    label="Filler Words"
-                    value={results.filler_count} unit="found"
-                    grade={grades.fillers}
-                    barPct={Math.min(100, (results.filler_count / 20) * 100)}
-                    delay={0.4}
-                    feedback={getMetricFeedback('fillers', results.filler_count, grades.fillers)}
-                  />
-
-                  {/* ── Filler Rate ── */}
-                  {results.filler_rate != null && (
-                    <AnimatedMetricRow
-                      label="Filler Rate"
-                      value={results.filler_rate} unit="% of words"
-                      grade={grades.fillers}
-                      barPct={Math.min(100, (results.filler_rate / 20) * 100)}
-                      delay={0.5}
-                      feedback={results.filler_rate < 3 ? 'Excellent — very clean speech.' : results.filler_rate < 8 ? 'Acceptable. Aim for under 3%.' : 'High filler rate. Replace fillers with deliberate pauses.'}
-                    />
-                  )}
-
-                  {/* ── Long Pauses ── */}
-                  <AnimatedMetricRow
-                    label="Long Pauses"
-                    value={results.long_pauses} unit="pauses"
-                    grade={grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad')}
-                    barPct={results.long_pauses === 0 ? 100 : results.long_pauses <= 3 ? 50 : 20}
-                    delay={0.6}
-                    feedback={getMetricFeedback('long_pauses', results.long_pauses, grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'))}
-                  />
-
-                  {/* ── Avg Pause Duration ── */}
-                  {results.avg_pause_duration > 0 && (
-                    <AnimatedMetricRow
-                      label="Avg Pause Length"
-                      value={results.avg_pause_duration} unit="sec"
-                      grade={results.avg_pause_duration < 2 ? 'good' : results.avg_pause_duration < 3 ? 'warning' : 'bad'}
-                      barPct={Math.max(0, 100 - (results.avg_pause_duration / 5) * 100)}
-                      delay={0.7}
-                      feedback={results.avg_pause_duration < 2 ? 'Pauses are brief and natural.' : 'Pauses are a bit long. Try to keep them under 2 seconds.'}
-                    />
-                  )}
-
-                  {/* ── Speech Ratio ── */}
-                  {results.speech_ratio != null && (
-                    <AnimatedMetricRow
-                      label="Speech Continuity"
-                      value={Math.round(results.speech_ratio * 100)} unit="%"
-                      grade={grades.speech_ratio ?? (results.speech_ratio >= 0.75 ? 'good' : results.speech_ratio >= 0.55 ? 'warning' : 'bad')}
-                      barPct={results.speech_ratio * 100}
-                      delay={0.8}
-                      feedback={results.speech_ratio >= 0.75 ? 'You spoke consistently throughout.' : results.speech_ratio >= 0.55 ? 'Some dead air. Try to reduce long silences.' : 'Too much silence. Work on maintaining flow.'}
-                    />
-                  )}
-
-                  {/* ── Vocabulary Richness ── */}
-                  {results.vocabulary_richness != null && (
-                    <AnimatedMetricRow
-                      label="Vocabulary Richness"
-                      value={Math.round(results.vocabulary_richness * 100)} unit="/ 100"
-                      grade={grades.vocabulary ?? (results.vocabulary_richness >= 0.70 ? 'good' : results.vocabulary_richness >= 0.50 ? 'warning' : 'bad')}
-                      barPct={results.vocabulary_richness * 100}
-                      delay={0.9}
-                      feedback={results.vocabulary_richness >= 0.70 ? 'Great word variety — sounds natural and engaging.' : results.vocabulary_richness >= 0.50 ? 'Decent variety. Try using more synonyms.' : 'Low word variety. Expand your vocabulary for impact.'}
-                    />
-                  )}
-
-                  {/* ── Pace Variation ── */}
-                  {results.pace_variation != null && (
-                    <AnimatedMetricRow
-                      label="Expressiveness"
-                      value={Math.round(results.pace_variation)} unit="variation"
-                      grade={grades.pace_variation ?? (results.pace_variation >= 10 && results.pace_variation <= 35 ? 'good' : results.pace_variation < 5 ? 'bad' : 'warning')}
-                      barPct={Math.min(100, (results.pace_variation / 50) * 100)}
-                      delay={1.0}
-                      feedback={results.pace_variation >= 10 && results.pace_variation <= 35 ? 'Good variation in pace — sounds engaging.' : results.pace_variation < 5 ? 'Very monotone. Vary your speed to keep listeners engaged.' : 'Pace is quite erratic. Aim for controlled variation.'}
-                    />
-                  )}
-
-                  {/* ── Eye Contact ── */}
-                  {results.gaze_on_screen_pct != null && (
-                    <AnimatedMetricRow
-                      label="Eye Contact"
-                      value={results.gaze_on_screen_pct} unit="%"
-                      grade={grades.eye_contact}
-                      barPct={results.gaze_on_screen_pct}
-                      delay={1.1}
-                      feedback={getMetricFeedback('eye_contact', results.gaze_on_screen_pct, grades.eye_contact)}
-                    />
-                  )}
-
-                  {/* ── Blink Rate ── */}
-                  {results.blink_count != null && (
-                    <AnimatedMetricRow
-                      label="Blink Count"
-                      value={results.blink_count} unit="blinks"
-                      grade={grades.blink_rate}
-                      barPct={Math.min(100, (results.blink_count / 50) * 100)}
-                      delay={1.2}
-                      feedback={getMetricFeedback('blink_rate', results.blink_count, grades.blink_rate)}
-                    />
-                  )}
-
-                </div>
-
-                {/* Filler Words Found (with animation) — now inside the same container */}
-                {results.filler_words && Object.keys(results.filler_words).length > 0 && (
-                  <div className="ev-metric-enter pt-3 border-t border-border" style={{ animationDelay: '0.55s' }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">Filler Words Found</p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(results.filler_words).map(([word, count]) => (
-                        <span key={word} className="ev-filler-badge">"{word}" x {count}</span>
-                      ))}
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {feedback.topIssues.length === 0
+                          ? "Outstanding session. You're interview-ready."
+                          : `Work on ${feedback.topIssues.map(i => i.title.toLowerCase()).join(', ')} and your score will improve significantly.`}
+                      </p>
                     </div>
                   </div>
                 )}
-              </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-4">
+            {!recording && (
+              <ScriptPanel script={script} setScript={setScript} visible={scriptOpen} setVisible={setScriptOpen} />
+            )}
+
+            {results ? (
+              <>
+                {/* Metrics card */}
+                <div className="ev-result-enter bg-card border border-border rounded-2xl p-5 space-y-4" data-testid="evaluation-results">
+                  {/* Combined Score */}
+                  <div className="flex items-center gap-4 pb-4 border-b border-border">
+                    <AnimatedScoreRing score={results.combined_score ?? 0} />
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-0.5">Combined Score</p>
+                      <p className="text-xl font-black" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        {results.combined_score >= 75 ? 'Excellent! 🥳' : results.combined_score >= 55 ? 'Great job! 👍' : results.combined_score >= 35 ? 'Fair 😊' : 'Needs Practice 💪'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {results.combined_score >= 75 ? "You're doing great – keep polishing those skills." :
+                         results.combined_score >= 55 ? "Good effort. A few tweaks and you'll be at the top." :
+                         results.combined_score >= 35 ? "You're on the right track. Keep practicing." :
+                         "Everyone starts somewhere. Regular practice will get you there."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Metric rows */}
+                  <div className="space-y-3">
+                    {results.audio_score != null && (
+                      <AnimatedMetricRow
+                        label="Audio Score" value={results.audio_score} unit="/ 100"
+                        grade={results.audio_score >= 75 ? 'good' : results.audio_score >= 50 ? 'warning' : 'bad'}
+                        barPct={results.audio_score} delay={0.1}
+                        feedback={results.audio_score >= 75 ? 'Strong overall delivery.' : results.audio_score >= 50 ? 'Good effort — focus on fluency and vocabulary.' : 'Work on pace, fillers and speech continuity.'}
+                      />
+                    )}
+                    <AnimatedMetricRow
+                      label="Words Per Minute" value={results.wpm} unit="wpm"
+                      grade={grades.wpm} barPct={Math.min(100, (results.wpm / 220) * 100)} delay={0.2}
+                      feedback={getMetricFeedback('wpm', results.wpm, grades.wpm)}
+                    />
+                    <AnimatedMetricRow
+                      label="Filler Words" value={results.filler_count} unit="found"
+                      grade={grades.fillers} barPct={Math.min(100, (results.filler_count / 20) * 100)} delay={0.4}
+                      feedback={getMetricFeedback('fillers', results.filler_count, grades.fillers)}
+                    />
+                    {results.filler_rate != null && (
+                      <AnimatedMetricRow
+                        label="Filler Rate" value={results.filler_rate} unit="% of words"
+                        grade={grades.fillers} barPct={Math.min(100, (results.filler_rate / 20) * 100)} delay={0.5}
+                        feedback={results.filler_rate < 3 ? 'Excellent — very clean speech.' : results.filler_rate < 8 ? 'Acceptable. Aim for under 3%.' : 'High filler rate. Replace fillers with deliberate pauses.'}
+                      />
+                    )}
+                    <AnimatedMetricRow
+                      label="Long Pauses" value={results.long_pauses} unit="pauses"
+                      grade={grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad')}
+                      barPct={results.long_pauses === 0 ? 100 : results.long_pauses <= 3 ? 50 : 20} delay={0.6}
+                      feedback={getMetricFeedback('long_pauses', results.long_pauses, grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'))}
+                    />
+                    {results.avg_pause_duration > 0 && (
+                      <AnimatedMetricRow
+                        label="Avg Pause Length" value={results.avg_pause_duration} unit="sec"
+                        grade={results.avg_pause_duration < 2 ? 'good' : results.avg_pause_duration < 3 ? 'warning' : 'bad'}
+                        barPct={Math.max(0, 100 - (results.avg_pause_duration / 5) * 100)} delay={0.7}
+                        feedback={results.avg_pause_duration < 2 ? 'Pauses are brief and natural.' : 'Pauses are a bit long. Try to keep them under 2 seconds.'}
+                      />
+                    )}
+                    {results.speech_ratio != null && (
+                      <AnimatedMetricRow
+                        label="Speech Continuity" value={Math.round(results.speech_ratio * 100)} unit="%"
+                        grade={grades.speech_ratio ?? (results.speech_ratio >= 0.75 ? 'good' : results.speech_ratio >= 0.55 ? 'warning' : 'bad')}
+                        barPct={results.speech_ratio * 100} delay={0.8}
+                        feedback={results.speech_ratio >= 0.75 ? 'You spoke consistently throughout.' : results.speech_ratio >= 0.55 ? 'Some dead air. Try to reduce long silences.' : 'Too much silence. Work on maintaining flow.'}
+                      />
+                    )}
+                    {results.vocabulary_richness != null && (
+                      <AnimatedMetricRow
+                        label="Vocabulary Richness" value={Math.round(results.vocabulary_richness * 100)} unit="/ 100"
+                        grade={grades.vocabulary ?? (results.vocabulary_richness >= 0.70 ? 'good' : results.vocabulary_richness >= 0.50 ? 'warning' : 'bad')}
+                        barPct={results.vocabulary_richness * 100} delay={0.9}
+                        feedback={results.vocabulary_richness >= 0.70 ? 'Great word variety — sounds natural and engaging.' : results.vocabulary_richness >= 0.50 ? 'Decent variety. Try using more synonyms.' : 'Low word variety. Expand your vocabulary for impact.'}
+                      />
+                    )}
+                    {results.pace_variation != null && (
+                      <AnimatedMetricRow
+                        label="Expressiveness" value={Math.round(results.pace_variation)} unit="variation"
+                        grade={grades.pace_variation ?? (results.pace_variation >= 10 && results.pace_variation <= 35 ? 'good' : results.pace_variation < 5 ? 'bad' : 'warning')}
+                        barPct={Math.min(100, (results.pace_variation / 50) * 100)} delay={1.0}
+                        feedback={results.pace_variation >= 10 && results.pace_variation <= 35 ? 'Good variation in pace — sounds engaging.' : results.pace_variation < 5 ? 'Very monotone. Vary your speed to keep listeners engaged.' : 'Pace is quite erratic. Aim for controlled variation.'}
+                      />
+                    )}
+                    {results.gaze_on_screen_pct != null && (
+                      <AnimatedMetricRow
+                        label="Eye Contact" value={results.gaze_on_screen_pct} unit="%"
+                        grade={grades.eye_contact} barPct={results.gaze_on_screen_pct} delay={1.1}
+                        feedback={getMetricFeedback('eye_contact', results.gaze_on_screen_pct, grades.eye_contact)}
+                      />
+                    )}
+                    {results.blink_count != null && (
+                      <AnimatedMetricRow
+                        label="Blink Count" value={results.blink_count} unit="blinks"
+                        grade={grades.blink_rate} barPct={Math.min(100, (results.blink_count / 50) * 100)} delay={1.2}
+                        feedback={getMetricFeedback('blink_rate', results.blink_count, grades.blink_rate)}
+                      />
+                    )}
+                  </div>
+
+                  {/* Filler words breakdown */}
+                  {results.filler_words && Object.keys(results.filler_words).length > 0 && (
+                    <div className="ev-metric-enter pt-3 border-t border-border" style={{ animationDelay: '0.55s' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">Filler Words Found</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(results.filler_words).map(([word, count]) => (
+                          <span key={word} className="ev-filler-badge">"{word}" x {count}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                
+              </>
             ) : (
-              /* Empty state (unchanged) */
+              /* Empty state */
               <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-4">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: 'rgba(46,79,79,.08)' }}>
                   <Brain className="w-6 h-6 text-primary" />
@@ -951,10 +959,10 @@ export const Evaluation = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-left">
                   {[
-                    ['120–160', 'Ideal WPM'],
-                    ['< 5%', 'Filler target'],
-                    ['> 70%', 'Eye contact'],
-                    ['10–20/min', 'Blink rate'],
+                    ['120-160', 'Ideal WPM'],
+                    ['< 5%',    'Filler target'],
+                    ['> 70%',   'Eye contact'],
+                    ['10-20/min', 'Blink rate'],
                   ].map(([val, label]) => (
                     <div key={label} className="rounded-xl p-2 text-center" style={{ background: '#F5F7F5', border: '1px solid #E2E4DE' }}>
                       <div className="text-sm font-bold text-primary" style={{ fontFamily: "'Playfair Display', serif" }}>{val}</div>
@@ -971,3 +979,4 @@ export const Evaluation = () => {
     </Layout>
   );
 };
+

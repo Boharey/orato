@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 import uuid
 from datetime import datetime, timezone, date, timedelta
 import asyncio
@@ -181,7 +181,11 @@ def compute_combined_score(audio: dict, video: dict) -> dict:
 
 
 @router.post("/analyze")
-async def analyze(video: UploadFile = File(...), user=Depends(get_current_user)):
+async def analyze(
+    video: UploadFile = File(...),
+    language: str = Form("en"),
+    user=Depends(get_current_user)
+):
     uid       = str(uuid.uuid4())
     webm_path = f"/tmp/{uid}.webm"
     wav_path  = f"/tmp/{uid}.wav"
@@ -203,7 +207,7 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
 
     loop = asyncio.get_event_loop()
     audio_result, video_result = await asyncio.gather(
-        loop.run_in_executor(None, analyze_audio, wav_path),
+        loop.run_in_executor(None, analyze_audio, wav_path, language),
         loop.run_in_executor(None, analyze_video, webm_path, user_calibration),
     )
 
@@ -285,6 +289,14 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
         "transcript":  transcript,
         "video_data":  None,
         "created_at":  datetime.now(timezone.utc).isoformat(),
+
+        # Optional new fields from enhanced audio engine
+        "filler_instances": audio_result.get("filler_instances", []),
+        "repetition_bursts": audio_result.get("repetition_bursts", []),
+        "avg_confidence": audio_result.get("avg_confidence", 0),
+        "speech_timeline": audio_result.get("speech_timeline", []),
+        "speech_start_latency": audio_result.get("speech_start_latency", 0),
+
     }
 
     await db.evaluations.insert_one(response)
