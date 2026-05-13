@@ -8,7 +8,15 @@ import re
 import numpy as np
 from collections import Counter
 
-MODEL = WhisperModel("small", device="cpu", compute_type="int8")
+import os
+_CPU_THREADS = min(4, os.cpu_count() or 2)
+MODEL = WhisperModel(
+    "small",
+    device="cpu",
+    compute_type="int8",
+    cpu_threads=_CPU_THREADS,
+    num_workers=1,
+)
 TRANSCRIBE_PROMPT = (
     "This is verbatim spoken English. "
     "Transcribe every word exactly as spoken, including filler words like "
@@ -132,7 +140,8 @@ def analyze_audio(file_path: str) -> dict:
             word_timestamps=True,
             initial_prompt=TRANSCRIBE_PROMPT,
             vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 300},
+            condition_on_previous_text=False,
+            #vad_parameters={"min_silence_duration_ms": 300},
         )
         segments = list(segments_gen)
     except Exception as e:

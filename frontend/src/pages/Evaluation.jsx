@@ -650,7 +650,7 @@ export const Evaluation = () => {
       return '';
   }
 };
-  const grades = {
+  const grades = results?.grades ?? {
     wpm: getGrade('wpm', results?.wpm),
     fillers: getGrade('fillers', results?.filler_count),
     eye_contact: getGrade('eye_contact', results?.gaze_on_screen_pct),
@@ -796,6 +796,20 @@ export const Evaluation = () => {
 
                 {/* Animated Metric Rows */}
                 <div className="space-y-3">
+
+                  {/* ── Audio Score (new) ── */}
+                  {results.audio_score != null && (
+                    <AnimatedMetricRow
+                      label="Audio Score"
+                      value={results.audio_score} unit="/ 100"
+                      grade={results.audio_score >= 75 ? 'good' : results.audio_score >= 50 ? 'warning' : 'bad'}
+                      barPct={results.audio_score}
+                      delay={0.1}
+                      feedback={results.audio_score >= 75 ? 'Strong overall delivery.' : results.audio_score >= 50 ? 'Good effort — focus on fluency and vocabulary.' : 'Work on pace, fillers and speech continuity.'}
+                    />
+                  )}
+
+                  {/* ── Pace ── */}
                   <AnimatedMetricRow
                     label="Words Per Minute"
                     value={results.wpm} unit="wpm"
@@ -804,22 +818,88 @@ export const Evaluation = () => {
                     delay={0.2}
                     feedback={getMetricFeedback('wpm', results.wpm, grades.wpm)}
                   />
+
+                  {/* ── Filler Words ── */}
                   <AnimatedMetricRow
                     label="Filler Words"
                     value={results.filler_count} unit="found"
                     grade={grades.fillers}
                     barPct={Math.min(100, (results.filler_count / 20) * 100)}
-                    delay={0.5}
+                    delay={0.4}
                     feedback={getMetricFeedback('fillers', results.filler_count, grades.fillers)}
                   />
+
+                  {/* ── Filler Rate ── */}
+                  {results.filler_rate != null && (
+                    <AnimatedMetricRow
+                      label="Filler Rate"
+                      value={results.filler_rate} unit="% of words"
+                      grade={grades.fillers}
+                      barPct={Math.min(100, (results.filler_rate / 20) * 100)}
+                      delay={0.5}
+                      feedback={results.filler_rate < 3 ? 'Excellent — very clean speech.' : results.filler_rate < 8 ? 'Acceptable. Aim for under 3%.' : 'High filler rate. Replace fillers with deliberate pauses.'}
+                    />
+                  )}
+
+                  {/* ── Long Pauses ── */}
                   <AnimatedMetricRow
                     label="Long Pauses"
                     value={results.long_pauses} unit="pauses"
-                    grade={results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'}
+                    grade={grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad')}
                     barPct={results.long_pauses === 0 ? 100 : results.long_pauses <= 3 ? 50 : 20}
-                    delay={0.8}
-                    feedback={getMetricFeedback('long_pauses', results.long_pauses, results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad')}
+                    delay={0.6}
+                    feedback={getMetricFeedback('long_pauses', results.long_pauses, grades.pauses ?? (results.long_pauses === 0 ? 'good' : results.long_pauses <= 3 ? 'warning' : 'bad'))}
                   />
+
+                  {/* ── Avg Pause Duration ── */}
+                  {results.avg_pause_duration > 0 && (
+                    <AnimatedMetricRow
+                      label="Avg Pause Length"
+                      value={results.avg_pause_duration} unit="sec"
+                      grade={results.avg_pause_duration < 2 ? 'good' : results.avg_pause_duration < 3 ? 'warning' : 'bad'}
+                      barPct={Math.max(0, 100 - (results.avg_pause_duration / 5) * 100)}
+                      delay={0.7}
+                      feedback={results.avg_pause_duration < 2 ? 'Pauses are brief and natural.' : 'Pauses are a bit long. Try to keep them under 2 seconds.'}
+                    />
+                  )}
+
+                  {/* ── Speech Ratio ── */}
+                  {results.speech_ratio != null && (
+                    <AnimatedMetricRow
+                      label="Speech Continuity"
+                      value={Math.round(results.speech_ratio * 100)} unit="%"
+                      grade={grades.speech_ratio ?? (results.speech_ratio >= 0.75 ? 'good' : results.speech_ratio >= 0.55 ? 'warning' : 'bad')}
+                      barPct={results.speech_ratio * 100}
+                      delay={0.8}
+                      feedback={results.speech_ratio >= 0.75 ? 'You spoke consistently throughout.' : results.speech_ratio >= 0.55 ? 'Some dead air. Try to reduce long silences.' : 'Too much silence. Work on maintaining flow.'}
+                    />
+                  )}
+
+                  {/* ── Vocabulary Richness ── */}
+                  {results.vocabulary_richness != null && (
+                    <AnimatedMetricRow
+                      label="Vocabulary Richness"
+                      value={Math.round(results.vocabulary_richness * 100)} unit="/ 100"
+                      grade={grades.vocabulary ?? (results.vocabulary_richness >= 0.70 ? 'good' : results.vocabulary_richness >= 0.50 ? 'warning' : 'bad')}
+                      barPct={results.vocabulary_richness * 100}
+                      delay={0.9}
+                      feedback={results.vocabulary_richness >= 0.70 ? 'Great word variety — sounds natural and engaging.' : results.vocabulary_richness >= 0.50 ? 'Decent variety. Try using more synonyms.' : 'Low word variety. Expand your vocabulary for impact.'}
+                    />
+                  )}
+
+                  {/* ── Pace Variation ── */}
+                  {results.pace_variation != null && (
+                    <AnimatedMetricRow
+                      label="Expressiveness"
+                      value={Math.round(results.pace_variation)} unit="variation"
+                      grade={grades.pace_variation ?? (results.pace_variation >= 10 && results.pace_variation <= 35 ? 'good' : results.pace_variation < 5 ? 'bad' : 'warning')}
+                      barPct={Math.min(100, (results.pace_variation / 50) * 100)}
+                      delay={1.0}
+                      feedback={results.pace_variation >= 10 && results.pace_variation <= 35 ? 'Good variation in pace — sounds engaging.' : results.pace_variation < 5 ? 'Very monotone. Vary your speed to keep listeners engaged.' : 'Pace is quite erratic. Aim for controlled variation.'}
+                    />
+                  )}
+
+                  {/* ── Eye Contact ── */}
                   {results.gaze_on_screen_pct != null && (
                     <AnimatedMetricRow
                       label="Eye Contact"
@@ -830,16 +910,19 @@ export const Evaluation = () => {
                       feedback={getMetricFeedback('eye_contact', results.gaze_on_screen_pct, grades.eye_contact)}
                     />
                   )}
+
+                  {/* ── Blink Rate ── */}
                   {results.blink_count != null && (
                     <AnimatedMetricRow
                       label="Blink Count"
                       value={results.blink_count} unit="blinks"
                       grade={grades.blink_rate}
                       barPct={Math.min(100, (results.blink_count / 50) * 100)}
-                      delay={1.4}
+                      delay={1.2}
                       feedback={getMetricFeedback('blink_rate', results.blink_count, grades.blink_rate)}
                     />
                   )}
+
                 </div>
 
                 {/* Filler Words Found (with animation) — now inside the same container */}

@@ -27,65 +27,157 @@ async def convert_to_wav(input_path: str, output_path: str):
 
 
 def compute_combined_score(audio: dict, video: dict) -> dict:
-    scores = {}
+    """
+    Research-backed scoring model for interview/presentation evaluation.
+
+    Audio is the foundation (content + delivery).
+    Eye contact acts as a trust multiplier — poor gaze penalises even great audio.
+    Either dimension being critically bad floors the final score.
+
+    Sources:
+    - MIT Interview Dataset (Naim et al., 2015): fluency, fillers, vocabulary
+      are top predictors of interview performance ratings.
+    - Martín-Raugh et al. (2022) meta-analysis: eye contact ρ=.45 with ratings.
+    - NIH study (2024): off-camera gaze directly decreases evaluation scores.
+    """
+
     grades = {}
 
+    # ══════════════════════════════════════════════════════
+    # AUDIO SCORE  (0–100)
+    # Built from 5 sub-dimensions, each 0–100
+    # ══════════════════════════════════════════════════════
+
+    # 1. PACE  — WPM  (weight: 20%)
+    # 120–160 WPM is ideal for interview/presentation
     wpm = audio.get("wpm", 0)
-    if 120 <= wpm <= 160:   scores["wpm"] = 100; grades["wpm"] = "good"
-    elif 100 <= wpm < 120 or 160 < wpm <= 180: scores["wpm"] = 70; grades["wpm"] = "warning"
-    else:                   scores["wpm"] = 40;  grades["wpm"] = "bad"
+    if 120 <= wpm <= 160:
+        pace_s = 100; grades["wpm"] = "good"
+    elif 100 <= wpm < 120 or 160 < wpm <= 175:
+        pace_s = 78;  grades["wpm"] = "warning"
+    elif 80 <= wpm < 100 or 175 < wpm <= 195:
+        pace_s = 52;  grades["wpm"] = "bad"
+    else:
+        pace_s = 25;  grades["wpm"] = "bad"   # too slow or racing
 
-    filler_rate = audio.get("filler_rate", 0)
-    if filler_rate < 5:     scores["fillers"] = 100; grades["fillers"] = "good"
-    elif filler_rate < 10:  scores["fillers"] = 65;  grades["fillers"] = "warning"
-    else:                   scores["fillers"] = 30;  grades["fillers"] = "bad"
+    # 2. FLUENCY — filler rate + long pauses  (weight: 28%)
+    # MIT study: filler reduction is the single highest-weight lexical feature
+    filler_rate  = audio.get("filler_rate", 0)
+    pause_count  = audio.get("pause_count", 0)
+    duration     = audio.get("duration", 60)
 
-    pause_count = audio.get("pause_count", 0)
-    if pause_count == 0:    scores["pauses"] = 100; grades["pauses"] = "good"
-    elif pause_count <= 2:  scores["pauses"] = 70;  grades["pauses"] = "warning"
-    else:                   scores["pauses"] = 40;  grades["pauses"] = "bad"
+    if filler_rate < 3:    filler_s = 100; grades["fillers"] = "good"
+    elif filler_rate < 6:  filler_s = 80;  grades["fillers"] = "good"
+    elif filler_rate < 10: filler_s = 55;  grades["fillers"] = "warning"
+    elif filler_rate < 15: filler_s = 30;  grades["fillers"] = "bad"
+    else:                  filler_s = 10;  grades["fillers"] = "bad"
 
+    # Pause penalty — normalise by duration so long speeches aren't unfairly penalised
+    pauses_per_min = (pause_count / max(duration / 60, 0.5))
+    if pauses_per_min == 0:    pause_s = 100; grades["pauses"] = "good"
+    elif pauses_per_min <= 1:  pause_s = 85;  grades["pauses"] = "good"
+    elif pauses_per_min <= 2:  pause_s = 65;  grades["pauses"] = "warning"
+    elif pauses_per_min <= 4:  pause_s = 40;  grades["pauses"] = "bad"
+    else:                      pause_s = 20;  grades["pauses"] = "bad"
+
+    fluency_s = round(filler_s * 0.65 + pause_s * 0.35)
+
+    # 3. SPEECH CONTINUITY — speech_ratio  (weight: 17%)
+    # How much of the recording was actual speech vs silence
     speech_ratio = audio.get("speech_ratio", 1.0)
-    if speech_ratio >= 0.75:   scores["speech_ratio"] = 100; grades["speech_ratio"] = "good"
-    elif speech_ratio >= 0.55: scores["speech_ratio"] = 65;  grades["speech_ratio"] = "warning"
-    else:                      scores["speech_ratio"] = 30;  grades["speech_ratio"] = "bad"
+    if speech_ratio >= 0.80:   ratio_s = 100; grades["speech_ratio"] = "good"
+    elif speech_ratio >= 0.68: ratio_s = 78;  grades["speech_ratio"] = "good"
+    elif speech_ratio >= 0.55: ratio_s = 52;  grades["speech_ratio"] = "warning"
+    else:                      ratio_s = 28;  grades["speech_ratio"] = "bad"
 
-    eye_pct = video.get("gaze_on_screen_pct")
-    if eye_pct is not None:
-        if eye_pct >= 70:   scores["eye_contact"] = 100; grades["eye_contact"] = "good"
-        elif eye_pct >= 50: scores["eye_contact"] = 65;  grades["eye_contact"] = "warning"
-        else:               scores["eye_contact"] = 30;  grades["eye_contact"] = "bad"
-    else:
-        scores["eye_contact"] = None; grades["eye_contact"] = "unknown"
+    # 4. VOCABULARY — richness  (weight: 20%)
+    # MIT study: unique word usage positively weighted by judges
+    vocab = audio.get("vocabulary_richness", 0)
+    if vocab >= 0.75:   vocab_s = 100; grades["vocabulary"] = "good"
+    elif vocab >= 0.60: vocab_s = 80;  grades["vocabulary"] = "good"
+    elif vocab >= 0.45: vocab_s = 58;  grades["vocabulary"] = "warning"
+    elif vocab >= 0.30: vocab_s = 35;  grades["vocabulary"] = "bad"
+    else:               vocab_s = 15;  grades["vocabulary"] = "bad"
 
+    # 5. PACE VARIATION — expressiveness  (weight: 15%)
+    # Some variation = engaging; monotone or erratic = bad
+    pace_var = audio.get("pace_variation", 0)
+    if 10 <= pace_var <= 35:   pvar_s = 100; grades["pace_variation"] = "good"
+    elif 5 <= pace_var < 10:   pvar_s = 72;  grades["pace_variation"] = "warning"
+    elif 35 < pace_var <= 55:  pvar_s = 72;  grades["pace_variation"] = "warning"
+    elif pace_var < 5:         pvar_s = 45;  grades["pace_variation"] = "bad"   # monotone
+    else:                      pvar_s = 35;  grades["pace_variation"] = "bad"   # erratic
+
+    # Weighted audio score
+    audio_score = round(
+        pace_s    * 0.20 +
+        fluency_s * 0.28 +
+        ratio_s   * 0.17 +
+        vocab_s   * 0.20 +
+        pvar_s    * 0.15,
+        1
+    )
+
+    # ══════════════════════════════════════════════════════
+    # VIDEO MULTIPLIER  (0.50 → 1.00)
+    # Eye contact acts as a trust/engagement multiplier
+    # Research: ρ=.45 with interview ratings (Martín-Raugh 2022)
+    #           Off-camera gaze directly lowers scores (NIH 2024)
+    # ══════════════════════════════════════════════════════
+    eye_pct     = video.get("gaze_on_screen_pct")
     blink_count = video.get("blink_count")
-    duration    = audio.get("duration", 60)
-    if blink_count is not None and duration > 0:
-        bpm = (blink_count / duration) * 60
-        if 10 <= bpm <= 20:                    scores["blink_rate"] = 100; grades["blink_rate"] = "good"
-        elif 6 <= bpm < 10 or 20 < bpm <= 30: scores["blink_rate"] = 65;  grades["blink_rate"] = "warning"
-        elif bpm > 30:                        scores["blink_rate"] = 30;  grades["blink_rate"] = "bad"
-    else:
-        scores["blink_rate"] = None; grades["blink_rate"] = "unknown"
+    has_video   = eye_pct is not None
 
-    has_video = eye_pct is not None and blink_count is not None
     if has_video:
-        weights = {"wpm": 0.20, "fillers": 0.20, "pauses": 0.10,
-                   "speech_ratio": 0.10, "eye_contact": 0.25, "blink_rate": 0.15}
-    else:
-        weights = {"wpm": 0.30, "fillers": 0.30, "pauses": 0.20,
-                   "speech_ratio": 0.20, "eye_contact": 0.0, "blink_rate": 0.0}
+        # Eye contact multiplier: 0.50 (never looks) → 1.00 (always looks)
+        # Deliberately steep — looking away in an interview is severely penalised
+        if eye_pct >= 75:
+            eye_multiplier = 1.00; grades["eye_contact"] = "good"
+        elif eye_pct >= 60:
+            eye_multiplier = 0.92; grades["eye_contact"] = "good"
+        elif eye_pct >= 45:
+            eye_multiplier = 0.80; grades["eye_contact"] = "warning"
+        elif eye_pct >= 30:
+            eye_multiplier = 0.65; grades["eye_contact"] = "bad"
+        else:
+            eye_multiplier = 0.50; grades["eye_contact"] = "bad"
 
-    # ── FIX: weighted average, not weighted sum ────────────────────────────
-    active = {k: w for k, w in weights.items() if scores.get(k) is not None and w > 0}
-    total_w = sum(active.values())
-    if total_w == 0:
-        combined = 0.0
-    else:
-        weighted_sum = sum(scores[k] * active[k] for k in active)
-        combined = round(weighted_sum / total_w, 1)   # ← NO * 100 here
+        # Blink rate — secondary signal (comfort/naturalness)
+        if blink_count is not None and duration > 0:
+            bpm = (blink_count / duration) * 60
+            if 10 <= bpm <= 20:                    grades["blink_rate"] = "good"
+            elif 6 <= bpm < 10 or 20 < bpm <= 28: grades["blink_rate"] = "warning"
+            else:                                   grades["blink_rate"] = "bad"
+        else:
+            grades["blink_rate"] = "unknown"
 
-    return {"combined_score": combined, "grades": grades}
+        combined = round(audio_score * eye_multiplier, 1)
+
+    else:
+        # No video — score on audio only, cap at 85
+        # Can't give full marks without presence signals
+        grades["eye_contact"] = "unknown"
+        grades["blink_rate"]  = "unknown"
+        combined = round(min(audio_score, 85.0), 1)
+
+    # ══════════════════════════════════════════════════════
+    # CRITICAL FLOOR — if either dimension is catastrophic,
+    # cap the combined score regardless of the other
+    # ══════════════════════════════════════════════════════
+
+    # Audio floor: if speech is nearly absent or incomprehensible
+    if audio_score < 25:
+        combined = min(combined, 30.0)
+
+    # Eye contact floor: if never looking at camera in a video session
+    if has_video and eye_pct is not None and eye_pct < 20:
+        combined = min(combined, 35.0)
+
+    return {
+        "combined_score": combined,
+        "audio_score":    audio_score,
+        "grades":         grades,
+    }
 
 
 @router.post("/analyze")
@@ -186,6 +278,7 @@ async def analyze(video: UploadFile = File(...), user=Depends(get_current_user))
         # Combined
         "confidence_score": scoring["combined_score"],
         "combined_score":   scoring["combined_score"],
+        "audio_score":      scoring["audio_score"],
         "grades":           scoring["grades"],
 
         # Meta
