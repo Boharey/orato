@@ -13,6 +13,13 @@ from app.routes import auth, training, analytics, evaluation, streak, calibratio
 
 app = FastAPI()
 
+# Serve annotated videos
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("static/annotated", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Attach rate limiter to the app
 # Attach rate limiter to the app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

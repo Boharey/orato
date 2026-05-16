@@ -77,7 +77,7 @@ def _classify_zone(dx, dy, h_thresh, v_thresh):
     return "UP" if dy < 0 else "DOWN"
 
 
-def analyze_video(video_path: str, user_calibration: dict = None) -> dict:
+def analyze_video(video_path: str, user_calibration: dict = None, return_per_frame: bool = False) -> dict:
     """
     user_calibration: optional dict with keys:
         neutral_horiz, neutral_vert, neutral_pitch, neutral_yaw
@@ -128,6 +128,8 @@ def analyze_video(video_path: str, user_calibration: dict = None) -> dict:
     ear_below   = 0
     on_cam_total = 0
     valid_frames = 0
+    frame_zones  = []   # NEW
+
 
     while True:
         ret, frame = cap.read()
@@ -215,19 +217,21 @@ def analyze_video(video_path: str, user_calibration: dict = None) -> dict:
             valid_frames += 1
             if zone == "ON_CAMERA":
                 on_cam_total += 1
+            frame_zones.append({"frame": frame_n, "time": round(frame_n / (cap.get(cv2.CAP_PROP_FPS) or 30), 3), "zone": zone})  # NEW
 
         frame_n += 1
 
     cap.release()
 
     if valid_frames == 0:
-        return {"blink_count": blink_count, "attention_score": None, "gaze_on_screen_pct": None}
+        return {"blink_count": blink_count, "attention_score": None, "gaze_on_screen_pct": None, "gaze_per_frame": []}  # NEW
 
     gaze_on_pct    = round((on_cam_total / valid_frames) * 100, 1)
     attention_score = round(gaze_on_pct * 0.85 + min(100, gaze_on_pct) * 0.15, 1)
 
     return {
-        "blink_count":       blink_count,
-        "attention_score":   attention_score,
+        "blink_count":        blink_count,
+        "attention_score":    attention_score,
         "gaze_on_screen_pct": gaze_on_pct,
+        "gaze_per_frame":     frame_zones if return_per_frame else [],  # NEW
     }

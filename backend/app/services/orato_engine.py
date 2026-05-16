@@ -167,6 +167,7 @@ def _empty_result() -> dict:
         "avg_confidence": 0,
         "speech_timeline": [],
         "speech_start_latency": 0,
+        "all_words": [],  # NEW
         "final_score": 0,
         "pace_score": 0,
         "clarity_score": 0,
@@ -425,4 +426,5 @@ def analyze_audio(file_path: str, language: str = "en") -> dict:
         "avg_confidence": avg_confidence,
         "speech_timeline": speech_timeline,
         "speech_start_latency": speech_start_latency,
+        "all_words": all_words,  # NEW — word-level timestamps for compositor
     }

@@ -20,7 +20,7 @@ MODULES = [
                 "60–70 BPM → one phrase per beat (not per word)",
                 "Deep inhale every 15–20 seconds to break “machine-gun” flow"
             ],
-            "video": "https://www.youtube.com/embed/kk0W3N2d2xY"
+            "video": "https://www.youtube.com/embed/ogKq376W83c?si=Yw3djbLaurPDQcE9"
         },
         {
             "heading": "Pace Acceleration – For Slow Speakers (<115 WPM)",
@@ -30,7 +30,7 @@ MODULES = [
                 "Explain same topic in 30 sec → 20 sec → 10 sec",
                 "Start slow → increase +10 WPM every 20 seconds"
             ],
-            "video": "https://www.youtube.com/embed/t9r2v5k8p3Q"
+            "video": "https://www.youtube.com/embed/DN5OnGxSWuY?si=o0HdavL1UvlCIhtp"
         },
         {
             "heading": "Rhythm & Cadence Training",
@@ -40,7 +40,7 @@ MODULES = [
                 "Rising-falling intonation pattern + deliberate pace blocks",
                 "10 sec fast → 10 sec slow → 10 sec normal (repeat)"
             ],
-            "video": "https://www.youtube.com/embed/b7m4x9q2w5E"
+            "video": "https://www.youtube.com/embed/H2naE8bAxeM?si=ptwMc5gjAQ8jhPmk"
         },
         {
             "heading": "Pause Mastery",
@@ -53,7 +53,7 @@ MODULES = [
                 "Build suspense with strategic silence",
                 "Pause instead of “um/uh” when searching for words"
             ],
-            "video": "https://www.youtube.com/embed/p9m5x2q8r4T"
+            "video": "https://www.youtube.com/embed/cjcYjsvU1e0?si=oUUSN7qn9fBbpxdf"
         }
     ]
 },
@@ -71,7 +71,7 @@ MODULES = [
                 "Record yourself and listen to where you naturally pause.",
                 "Why it works → Your brain uses fillers to buy time. Replacing them with silence trains your mind to think calmly without adding noise. Over time, silence becomes natural and fillers disappear."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"  # replace with real video later
+            "video": "https://www.youtube.com/embed/hUY8DiQgUUg?si=n0H6VP376A_tEqVE"  # replace with real video later
         },
         {
             "heading": "Pause Instead of Filler Practice",
@@ -92,7 +92,7 @@ MODULES = [
                 "Speak only when you know your first few words.",
                 "Why it works → Fillers appear when your mouth starts before your brain finishes processing. A short mental buffer reduces hesitation and cuts filler usage dramatically."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/9sv6Fi70Aug?si=xOvzML6A0GX97Pue"
         },
         {
             "heading": "Transition Word Training",
@@ -102,7 +102,7 @@ MODULES = [
                 "Replace fillers in your natural speaking with these transitions.",
                 "Why it works → Most fillers act as bridges between ideas. Replacing them with meaningful transitions makes speech clearer and more structured."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/DRjRYQoXDcQ?si=41tcjEBpAWoEKZyy"
         },
         {
             "heading": "Keyword-First Speaking Technique",
@@ -112,7 +112,7 @@ MODULES = [
                 "Build your explanation afterward.",
                 "Why it works → Most fillers happen in the first seconds of speech. Starting with a keyword removes hesitation and creates immediate clarity."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/FLV3d5YkFgg?si=-s9g7-suC-goiDJ7"
         },
         {
             "heading": "Controlled Breathing Training",
@@ -124,7 +124,7 @@ MODULES = [
                 "Repeat for 5–7 cycles before speaking.",
                 "Why it works → Nervousness causes fillers. Controlled breathing stabilizes your voice and gives your speech a steady rhythm, reducing filler usage naturally."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/dyIoUMwD7Xw?si=GgZnq4OZMrL627Hw"
         },
         {
             "heading": "Slow-Down & Pacing Practice",
@@ -134,7 +134,7 @@ MODULES = [
                 "Practice reading slow scripts or paragraphs.",
                 "Why it works → Rushing forces your brain to catch up, creating fillers. Slower pacing gives your mind time to form sentences cleanly."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/2Nr7Un23P0A?si=nnrFj5m8J6NCr18Y"
         },
         {
             "heading": "Chunked Speaking Method",
@@ -144,7 +144,7 @@ MODULES = [
                 "Practice with simple explanation tasks.",
                 "Why it works → Your brain handles short pieces better than long streams. Chunking reduces mental load and naturally lowers filler frequency."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/ERw1IfeiHXI?si=3jhW9lMNfShWrKp1"
         }
     ]
 },
@@ -163,7 +163,7 @@ MODULES = [
                 "Record, listen, and repeat for improvement.",
                 "Repeat the same twister multiple times to strengthen articulation."
             ],
-           "video": "https://www.youtube.com/embed/xPXu5GoUHH0" # replace with real when ready
+           "video": "https://www.youtube.com/embed/_8tdqL5_Prc?si=P4nSc261oBDLD6ec" # replace with real when ready
         },
         {
             "heading": "Pen-in-Mouth Method",
@@ -186,7 +186,7 @@ MODULES = [
                 "Use a mirror to monitor tongue, lip, and jaw movement.",
                 "Record both normal and exaggerated versions for comparison."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/LdGw_Pgw5eI?si=HmczdYysbXV2mKn-"
         },
         {
             "heading": "Phoneme Isolation Drills",
@@ -199,7 +199,7 @@ MODULES = [
                 "Build up to longer words and full sentences.",
                 "Practice each phoneme for 2 minutes daily."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/w16U89HHeQI?si=OujfBYdDwHiL1EUP"
         },
         {
             "heading": "Jaw & Tongue Mobility Exercises",
@@ -210,7 +210,7 @@ MODULES = [
                 "Practice slow jaw drop and glide movements.",
                 "Do lip pops (pah, puh) and tongue taps (tuh, dah)."
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/XcloMyxeCSA?si=h-xCY7fPF8cidJSS"
         }
     ]
 },
@@ -227,7 +227,7 @@ MODULES = [
                 "Shift focus every 2–4 seconds",
                 "Practice 30–60 seconds on mirror, camera, or video"
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"  # replace later
+            "video": "https://www.youtube.com/embed/Qq4JFzrMnYg?si=mbGp9uB7Ai5xEuyq"  # replace later
         },
         {
             "heading": "50/70 Rule for Audience Scanning",
@@ -237,7 +237,7 @@ MODULES = [
                 "Scan left → center → right → back rows in loops",
                 "Practice with 6–8 objects placed around the room"
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/LpGiGzQbQlI?si=sgcS_dtULDwuozG0"
         },
         {
             "heading": "Lens Connection Exercise",
@@ -258,7 +258,7 @@ MODULES = [
                 "Do 3–5 cycles before speaking",
                 "Combine with triangle gaze"
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/30VMIEmA114?si=I3j86XjimZHz6SVH"
         },
         {
             "heading": "Anti-Fidget Routine",
@@ -279,7 +279,7 @@ MODULES = [
                 "Keep soft facial expression",
                 "Practice while reading short text"
             ],
-            "video": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            "video": "https://www.youtube.com/embed/8OGDhlUvSK4?si=zIGyXnTNCbnyq1FQ"
         }
     ]
 }

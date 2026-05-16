@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone, date, timedelta
 import asyncio
 import os
+from app.services.video_compositor import generate_annotated_video
 
 from app.services.streakservice import calculate_streaks
 from app.db.database import db
@@ -208,8 +209,27 @@ async def analyze(
     loop = asyncio.get_event_loop()
     audio_result, video_result = await asyncio.gather(
         loop.run_in_executor(None, analyze_audio, wav_path, language),
-        loop.run_in_executor(None, analyze_video, webm_path, user_calibration),
+        loop.run_in_executor(None, analyze_video, webm_path, user_calibration, True),  # True = return_per_frame
     )
+
+    # Generate annotated video BEFORE deleting webm
+    annotated_video_url = None
+    try:
+        os.makedirs("static/annotated", exist_ok=True)
+        out_path = f"static/annotated/{uid}.mp4"
+        success = await loop.run_in_executor(
+            None,
+            generate_annotated_video,
+            webm_path,
+            out_path,
+            audio_result.get("all_words", []),
+            audio_result.get("filler_instances", []),
+            video_result.get("gaze_per_frame", []),
+        )
+        if success:
+            annotated_video_url = f"/static/annotated/{uid}.mp4"
+    except Exception as e:
+        print(f"[evaluation] annotated video failed: {e}")
 
     for p in [webm_path, wav_path]:
         try: os.remove(p)
@@ -287,7 +307,8 @@ async def analyze(
 
         # Meta
         "transcript":  transcript,
-        "video_data":  None,
+        "video_data":  annotated_video_url,
+
         "created_at":  datetime.now(timezone.utc).isoformat(),
 
         # Optional new fields from enhanced audio engine
@@ -317,3 +338,12 @@ async def history(user=Depends(get_current_user)):
             "eye_gaze":     d.get("gaze_on_screen_pct") or d.get("eye_contact_percentage", 0),
         })
     return formatted
+
+
+@router.get("/session-count")
+async def session_count(user=Depends(get_current_user)):
+    count = await db.evaluations.count_documents({
+        "user_id": user["id"],
+        "duration": {"$gte": 60}          # only sessions ≥ 1 minute
+    })
+    return {"count": count}
