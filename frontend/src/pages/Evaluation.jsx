@@ -31,7 +31,13 @@ const STYLES = `
   .ev-result-label { font-size: 13px; font-weight: 500; color: #5A6A5A; }
   .ev-result-value { font-size: 18px; font-weight: 700; color: #1F2E2E; font-family: 'Playfair Display', serif; }
   .ev-filler-list  { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
-
+  .ev-filler {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-radius: 4px;
+  padding: 0 2px;
+  font-weight: 500;
+}
   .ev-score-ring-wrap {
     position: relative; width: 82px; height: 82px;
     display: flex; align-items: center; justify-content: center;
@@ -274,97 +280,198 @@ const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
   const [playing, setPlaying]   = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [ready, setReady]       = useState(false);   // true after metadata is loaded
 
-  const ensureLoaded = (vid, cb) => {
-    if (vid.readyState >= 2) { cb(); return; }
-    vid.addEventListener('canplay', cb, { once: true });
-    if (!objectUrlRef.current && recordedBlob) {
+  // ── load video once a blob is available ──────────────────────────
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !recordedBlob) return;
+
+    // create object URL if needed
+    if (!objectUrlRef.current) {
       objectUrlRef.current = URL.createObjectURL(recordedBlob);
     }
-    if (vid.src !== objectUrlRef.current) {
-      vid.src = objectUrlRef.current;
-      vid.load();
-    }
-  };
 
-  const toggle = () => {
-    const vid = videoRef.current;
-    if (!vid) return;
-    if (vid.paused) {
-      ensureLoaded(vid, () => vid.play().catch(() => {}));
-    } else {
-      vid.pause();
+    const src = objectUrlRef.current;
+    if (vid.src === src && vid.readyState >= 2) {
+      // already loaded
+      setDuration(vid.duration);
+      setReady(true);
+      return;
     }
-  };
 
+    vid.src = src;
+    vid.load();
+
+    const onMeta = () => {
+      setDuration(vid.duration);
+      setReady(true);
+    };
+    vid.addEventListener('loadedmetadata', onMeta, { once: true });
+    return () => vid.removeEventListener('loadedmetadata', onMeta);
+  }, [recordedBlob, videoRef, objectUrlRef]);
+
+  // ── play / pause / timeupdate ─────────────────────────────────────
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
+
     const onPlay   = () => setPlaying(true);
     const onPause  = () => setPlaying(false);
     const onEnded  = () => setPlaying(false);
     const onTime   = () => setProgress(vid.currentTime);
-    const onMeta   = () => setDuration(vid.duration);
-    vid.addEventListener('play',           onPlay);
-    vid.addEventListener('pause',          onPause);
-    vid.addEventListener('ended',          onEnded);
-    vid.addEventListener('timeupdate',     onTime);
-    vid.addEventListener('loadedmetadata', onMeta);
-    if (objectUrlRef.current && vid.src !== objectUrlRef.current) {
-      vid.src = objectUrlRef.current;
-      vid.load();
-    } else if (!objectUrlRef.current && recordedBlob) {
-      objectUrlRef.current = URL.createObjectURL(recordedBlob);
-      vid.src = objectUrlRef.current;
-      vid.load();
-    }
-    return () => {
-      vid.removeEventListener('play',           onPlay);
-      vid.removeEventListener('pause',          onPause);
-      vid.removeEventListener('ended',          onEnded);
-      vid.removeEventListener('timeupdate',     onTime);
-      vid.removeEventListener('loadedmetadata', onMeta);
-    };
-  }, [videoRef, recordedBlob]);
 
+    vid.addEventListener('play',      onPlay);
+    vid.addEventListener('pause',     onPause);
+    vid.addEventListener('ended',     onEnded);
+    vid.addEventListener('timeupdate', onTime);
+
+    return () => {
+      vid.removeEventListener('play',      onPlay);
+      vid.removeEventListener('pause',     onPause);
+      vid.removeEventListener('ended',     onEnded);
+      vid.removeEventListener('timeupdate', onTime);
+    };
+  }, [videoRef]);
+
+  // ── toggle play / pause ───────────────────────────────────────────
+  const toggle = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.paused ? vid.play().catch(() => {}) : vid.pause();
+  };
+
+  // ── seek via slider ───────────────────────────────────────────────
+  const handleSeek = (e) => {
+    const newTime = Number(e.target.value);
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+      setProgress(newTime);
+    }
+  };
+
+  // ── formatting helper ─────────────────────────────────────────────
   const fmt = (s) => {
     if (!s || isNaN(s)) return '0:00';
     const m = Math.floor(s / 60), sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
+  if (!ready) {
+    // Show a simple loading state until metadata arrives
+    return (
+      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg">
+        <div className="text-white text-sm animate-pulse">Loading video…</div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="absolute inset-0 z-[8] cursor-pointer" onClick={toggle} style={{ background: 'transparent' }} />
+      {/* invisible overlay to toggle play/pause on click */}
+      <div
+        className="absolute inset-0 z-[8] cursor-pointer"
+        onClick={toggle}
+        style={{ background: 'transparent' }}
+      />
+
+      {/* big play button when paused */}
       {!playing && (
         <div className="absolute inset-0 z-[9] flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          >
             <Play className="w-6 h-6 text-white ml-1" />
           </div>
         </div>
       )}
-      <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pt-6 pb-3"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)' }}>
+
+      {/* controls bar at the bottom */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 px-4 pt-6 pb-3"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)' }}
+      >
+        {/* slider – now with real duration */}
         <input
-          type="range" min={0} max={duration || 1} step={0.1}
+          type="range"
+          min={0}
+          max={duration}
+          step={0.1}
           value={progress}
-          onChange={e => { if (videoRef.current) videoRef.current.currentTime = e.target.value; }}
+          onChange={handleSeek}
           className="w-full h-1 mb-2 cursor-pointer"
           style={{ accentColor: '#FF6B35' }}
         />
+
         <div className="flex items-center gap-3">
-          <button onClick={e => { e.stopPropagation(); toggle(); }}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors flex-shrink-0">
-            {playing
-              ? <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/></svg>
-              : <Play className="w-3.5 h-3.5 ml-0.5" />}
+          {/* play/pause button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggle(); }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors flex-shrink-0"
+          >
+            {playing ? (
+              <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
+                <rect x="5" y="4" width="4" height="16" />
+                <rect x="15" y="4" width="4" height="16" />
+              </svg>
+            ) : (
+              <Play className="w-3.5 h-3.5 ml-0.5" />
+            )}
           </button>
-          <span className="text-white text-xs font-mono">{fmt(progress)} / {fmt(duration)}</span>
-          <span className="ml-auto text-white/50 text-[10px]">Space · Enter to analyze</span>
+          <span className="text-white text-xs font-mono">
+            {fmt(progress)} / {fmt(duration)}
+          </span>
+          <span className="ml-auto text-white/50 text-[10px]">
+            Space · Enter to analyze
+          </span>
         </div>
       </div>
     </>
+  );
+};
+
+/// Speech timeline visualisation
+const SpeechTimeline = ({ timeline, totalDuration, videoRef }) => {
+  const [hoveredSegment, setHoveredSegment] = useState(null);
+  if (!timeline || timeline.length === 0) return null;
+  const handleClick = (segment) => {
+    if (videoRef && videoRef.current) {
+      videoRef.current.currentTime = segment.start;
+    }
+  };
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 mt-4">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+        Speech Timeline
+      </div>
+      <div className="relative h-10 w-full rounded-md overflow-hidden flex bg-muted">
+        {timeline.map((segment, idx) => {
+          const width = ((segment.end - segment.start) / totalDuration) * 100;
+          if (width <= 0) return null;
+          const isSpeech = segment.type === 'speech';
+          return (
+            <div
+              key={idx}
+              className={`h-full cursor-pointer transition-all hover:opacity-80 ${isSpeech ? 'bg-green-500' : 'bg-gray-300'}`}
+              style={{ width: `${width}%` }}
+              title={`${isSpeech ? 'Speech' : 'Pause'} — ${(segment.end - segment.start).toFixed(1)}s`}
+              onClick={() => handleClick(segment)}
+              onMouseEnter={() => setHoveredSegment(segment)}
+              onMouseLeave={() => setHoveredSegment(null)}
+            />
+          );
+        })}
+      </div>
+      {hoveredSegment && (
+        <div className="text-[10px] text-muted-foreground mt-1 text-center">
+          {hoveredSegment.type === 'speech' ? 'Speech' : 'Pause'} — {(hoveredSegment.end - hoveredSegment.start).toFixed(1)}s
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground mt-1 text-center">
+        Click on any segment to jump to that time
+      </p>
+    </div>
   );
 };
 
@@ -469,6 +576,8 @@ export const Evaluation = () => {
         headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       setResults(data);
+      console.log("Backend response:", data); 
+      console.log("speech_timeline:", data.speech_timeline);
       toast.success('Analysis complete!');
     } catch (err) {
       const msg = err?.response?.data?.detail;
@@ -763,10 +872,23 @@ export const Evaluation = () => {
               )}
             </div>
 
-            {results?.transcript && (
+            {/* Transcript card – always show if results exist, even if empty */}
+            {results && (
               <div className="ev-result-enter">
-                <Transcript transcript={results.transcript} fillerWords={results.filler_words} />
+                <Transcript 
+                  transcript={results.transcript || "No transcript available (analysis may have failed)."} 
+                  fillerWords={results.filler_words || {}} 
+                />
               </div>
+            )}
+
+            {/* Speech Timeline */}
+            {results?.speech_timeline && results.speech_timeline.length > 0 && (
+              <SpeechTimeline
+                timeline={results.speech_timeline}
+                totalDuration={results.duration || 0}
+                videoRef={videoRef}
+              />
             )}
             
             {/* Coach Feedback card */}

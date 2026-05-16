@@ -2,7 +2,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-with open("librispeech_batch_1_100_samples.json") as f:
+with open("") as f:
     data = json.load(f)
 
 samples = data["per_sample"]

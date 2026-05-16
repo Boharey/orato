@@ -108,6 +108,7 @@ async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     await db.token_blocklist.insert_one({"token": token, "expires_at": exp})
     return {"message": "Logged out"}
 
+
 @router.get("/me", response_model=UserResponse)
 async def me(user=Depends(get_current_user)):
     return UserResponse(**user)

@@ -5,7 +5,7 @@ import { Layout } from '../components/Layout';
 import { DashboardCard, DASHBOARD_STYLES } from '../components/dashboard';
 import { StreakCalendar } from '../components/StreakCalendar';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Zap, Eye, Award, CalendarDays, CalendarRange, Brain } from 'lucide-react';
+import { TrendingUp, Zap, Eye, Award, CalendarDays, CalendarRange, Brain, ArrowUp, ArrowDown } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -94,6 +94,41 @@ export const Dashboard = () => {
     return (sum / data.length).toFixed(1);
   };
 
+  const getPeriodAverages = (data, currentDays = 30, prevDays = 30) => {
+    if (!data || data.length === 0) return { current: null, previous: null };
+    const now = new Date();
+    const currentStart = new Date(now); currentStart.setDate(now.getDate() - currentDays);
+    const prevStart = new Date(currentStart); prevStart.setDate(currentStart.getDate() - prevDays);
+
+    const currentData = data.filter(d => new Date(d.date) >= currentStart);
+    const prevData = data.filter(d => new Date(d.date) >= prevStart && new Date(d.date) < currentStart);
+
+    const avg = arr => arr.length === 0 ? null : arr.reduce((s, d) => s + d.value, 0) / arr.length;
+    return { current: avg(currentData), previous: avg(prevData) };
+  };
+
+  const getTrend = (metric, currentAvg, prevAvg) => {
+    if (currentAvg === null || prevAvg === null || prevAvg === 0) return null;
+    const pct = ((currentAvg - prevAvg) / prevAvg) * 100;
+    // For fillers: lower is better → invert improvement direction
+    const improved = metric === 'fillers' ? pct < 0 : pct > 0;
+    return { pct: Math.abs(pct).toFixed(1), improved };
+  };
+
+  const TrendBadge = ({ trend }) => {
+    if (!trend) return <span className="text-xs text-muted-foreground ml-1">—</span>;
+    const { pct, improved } = trend;
+    return improved ? (
+      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-600 bg-green-500/10 rounded-full px-1.5 py-0.5 ml-1">
+        <ArrowUp className="w-3 h-3" />{pct}%
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-500 bg-red-500/10 rounded-full px-1.5 py-0.5 ml-1">
+        <ArrowDown className="w-3 h-3" />{pct}%
+      </span>
+    );
+  };
+
   // --- Enhanced feedback generator (like Evaluation.jsx) ---
   const generateDetailedFeedback = (analytics) => {
     const avgWpm = parseFloat(calculateAverage(analytics.wpm));
@@ -148,12 +183,35 @@ export const Dashboard = () => {
   const groupedEyeGaze = useMemo(() => groupByPeriod(analytics.eye_gaze, timeRange), [analytics.eye_gaze, timeRange]);
   const groupedCombined = useMemo(() => groupByPeriod(analytics.combined, timeRange), [analytics.combined, timeRange]);
 
+  const trends = useMemo(() => {
+    const wpmP = getPeriodAverages(analytics.wpm);
+    const fillersP = getPeriodAverages(analytics.fillers);
+    const eyeP = getPeriodAverages(analytics.eye_gaze);
+    const combinedP = getPeriodAverages(analytics.combined);
+    const now = new Date();
+    const cutoff = new Date(now); cutoff.setDate(now.getDate() - 30);
+    const prevCutoff = new Date(cutoff); prevCutoff.setDate(cutoff.getDate() - 30);
+    const currentSessions = (analytics.wpm || []).filter(d => new Date(d.date) >= cutoff).length;
+    const prevSessions = (analytics.wpm || []).filter(d => new Date(d.date) >= prevCutoff && new Date(d.date) < cutoff).length;
+    const sessionsTrend = prevSessions === 0 ? null : {
+      pct: Math.abs(((currentSessions - prevSessions) / prevSessions) * 100).toFixed(1),
+      improved: currentSessions >= prevSessions
+    };
+    return {
+      combined: getTrend('combined', combinedP.current, combinedP.previous),
+      wpm: getTrend('wpm', wpmP.current, wpmP.previous),
+      fillers: getTrend('fillers', fillersP.current, fillersP.previous),
+      eye_gaze: getTrend('eye_gaze', eyeP.current, eyeP.previous),
+      sessions: sessionsTrend,
+    };
+  }, [analytics]);
+
   const summaryCards = [
-    { icon: Award, title: 'Avg Combined Score', value: calculateAverage(analytics.combined), color: 'bg-indigo-500/10 text-indigo-600' },
-    { icon: TrendingUp, title: 'Average WPM', value: calculateAverage(analytics.wpm), color: 'bg-blue-500/10 text-blue-600' },
-    { icon: Zap, title: 'Avg Filler Count', value: calculateAverage(analytics.fillers), color: 'bg-amber-500/10 text-amber-600' },
-    { icon: Eye, title: 'Avg Eye Contact', value: `${calculateAverage(analytics.eye_gaze)}%`, color: 'bg-green-500/10 text-green-600' },
-    { icon: Award, title: 'Total Sessions', value: analytics.wpm?.length || 0, color: 'bg-purple-500/10 text-purple-600' },
+    { icon: Award, title: 'Avg Combined Score', value: calculateAverage(analytics.combined), color: 'bg-indigo-500/10 text-indigo-600', trend: trends.combined },
+    { icon: TrendingUp, title: 'Average WPM', value: calculateAverage(analytics.wpm), color: 'bg-blue-500/10 text-blue-600', trend: trends.wpm },
+    { icon: Zap, title: 'Avg Filler Count', value: calculateAverage(analytics.fillers), color: 'bg-amber-500/10 text-amber-600', trend: trends.fillers },
+    { icon: Eye, title: 'Avg Eye Contact', value: `${calculateAverage(analytics.eye_gaze)}%`, color: 'bg-green-500/10 text-green-600', trend: trends.eye_gaze },
+    { icon: Award, title: 'Total Sessions', value: analytics.wpm?.length || 0, color: 'bg-purple-500/10 text-purple-600', trend: trends.sessions },
   ];
 
   if (loading) {
@@ -170,23 +228,41 @@ export const Dashboard = () => {
     <Layout>
       <style>{DASHBOARD_STYLES}</style>
       <div className="db-root px-4 sm:px-8 py-8 sm:py-12 max-w-[1600px] mx-auto" data-testid="dashboard-page">
-        <div className="mb-12 db-h">
-          <h1 className="db-serif text-4xl md:text-5xl font-light tracking-tight text-foreground mb-3">Dashboard</h1>
-          <p className="text-muted-foreground text-base">Track your communication skills progress</p>
+        <div className="mb-12 db-h flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="db-serif text-4xl md:text-5xl font-light tracking-tight text-foreground mb-3">Dashboard</h1>
+            <p className="text-muted-foreground text-base">Track your communication skills progress</p>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button onClick={() => setTimeRange('daily')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'daily' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+              <CalendarDays className="w-4 h-4" /> Daily
+            </button>
+            <button onClick={() => setTimeRange('weekly')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'weekly' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+              <CalendarRange className="w-4 h-4" /> Weekly
+            </button>
+            <button onClick={() => setTimeRange('monthly')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'monthly' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+              <CalendarRange className="w-4 h-4" /> Monthly
+            </button>
+          </div>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-7 mb-12">
           {summaryCards.map((card, index) => (
-            <DashboardCard
-              key={index}
-              icon={card.icon}
-              title={card.title}
-              value={card.value}
-              color={card.color}
-              index={index}
-              testId={`summary-card-${index}`}
-            />
+            <div key={index} className="flex flex-col">
+              <DashboardCard
+                icon={card.icon}
+                title={card.title}
+                value={card.value}
+                color={card.color}
+                index={index}
+                testId={`summary-card-${index}`}
+              />
+              <div className="flex items-center gap-1 px-1 pt-1.5 text-xs text-muted-foreground">
+                <span>vs prev 30d</span>
+                <TrendBadge trend={card.trend} />
+              </div>
+            </div>
           ))}
         </div>
 
@@ -243,18 +319,6 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* Time Range Toggle */}
-        <div className="flex justify-end mb-6 gap-2">
-          <button onClick={() => setTimeRange('daily')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'daily' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-            <CalendarDays className="w-4 h-4" /> Daily
-          </button>
-          <button onClick={() => setTimeRange('weekly')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'weekly' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-            <CalendarRange className="w-4 h-4" /> Weekly
-          </button>
-          <button onClick={() => setTimeRange('monthly')} className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${timeRange === 'monthly' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-            <CalendarRange className="w-4 h-4" /> Monthly
-          </button>
-        </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
