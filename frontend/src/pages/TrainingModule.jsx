@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, PlayCircle, CheckCircle, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-// Slug from heading
 const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const STYLES = `
@@ -27,15 +27,24 @@ const STYLES = `
     transition:transform .25s ease;
     border-radius:0 2px 2px 0;
   }
-  .tm-tech-row:hover { transform:translateX(4px); box-shadow:0 6px 24px rgba(46,79,79,.08); border-color:#C8D0C8; }
-  .tm-tech-row:hover::before { transform:scaleY(1); }
-  .tm-tech-row:hover .tm-arrow { opacity:1; transform:translateX(0); }
+  .tm-tech-row:not(.locked):hover { transform:translateX(4px); box-shadow:0 6px 24px rgba(46,79,79,.08); border-color:#C8D0C8; }
+  .tm-tech-row:not(.locked):hover::before { transform:scaleY(1); }
+  .tm-tech-row:not(.locked):hover .tm-arrow { opacity:1; transform:translateX(0); }
+  .tm-tech-row.locked {
+    opacity:0.55;
+    cursor:not-allowed;
+    filter:grayscale(20%);
+  }
+  .tm-tech-row.locked:hover { transform:none; box-shadow:none; border-color:#E2E4DE; }
   .tm-arrow { opacity:0; transform:translateX(-6px); transition:opacity .2s, transform .2s; }
 
   .tm-num {
     width:36px; height:36px; border-radius:10px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
     font-family:'Playfair Display',serif; font-weight:900; font-size:14px;
+  }
+  .tm-lock-message {
+    font-size:11px; color:#9ca3af; margin-top:4px;
   }
 `;
 
@@ -44,8 +53,14 @@ export const TrainingModule = () => {
   const navigate = useNavigate();
   const [module, setModule] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionCount, setSessionCount] = useState(0);
 
-  useEffect(() => { fetchModule(); }, [moduleId]);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    fetchModule();
+    fetchSessionCount();
+  }, [moduleId]);
 
   const fetchModule = async () => {
     try {
@@ -55,6 +70,17 @@ export const TrainingModule = () => {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSessionCount = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/evaluation/session-count`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setSessionCount(res.data.count);
+    } catch (e) {
+      console.error('Failed to fetch session count', e);
     }
   };
 
@@ -93,6 +119,10 @@ export const TrainingModule = () => {
           <p className="text-muted-foreground leading-relaxed max-w-xl" data-testid="module-description">
             {module.description}
           </p>
+          {/* Progress summary */}
+          <div className="mt-3 text-xs text-muted-foreground">
+            🎯 You have completed <strong>{sessionCount}</strong> practice session{sessionCount !== 1 ? 's' : ''}.
+          </div>
         </div>
 
         {/* Progress hint */}
@@ -110,25 +140,33 @@ export const TrainingModule = () => {
             const slug = toSlug(section.heading);
             const hasVideo = !!section.video;
             const pointCount = section.points?.length || 0;
+            // ✅ USE BACKEND'S LOCKED FLAG ONLY
+            const isLocked = section.locked === true;
+
             return (
               <div
                 key={i}
-                className="tm-enter tm-tech-row"
+                className={`tm-enter tm-tech-row ${isLocked ? 'locked' : ''}`}
                 style={{ '--tc': i % 2 === 0 ? '#2E4F4F' : '#FF6B35', animationDelay: `${i * 0.06}s` }}
                 data-testid={`module-section-${i}`}
-                onClick={() => navigate(`/training/${moduleId}/${slug}`)}
+                onClick={() => {
+                  if (!isLocked) navigate(`/training/${moduleId}/${slug}`);
+                }}
               >
                 {/* Number */}
                 <div className="tm-num" style={{
                   background: i % 2 === 0 ? '#2E4F4F12' : '#FF6B3512',
                   color: i % 2 === 0 ? '#2E4F4F' : '#FF6B35'
                 }}>
-                  {String(i + 1).padStart(2, '0')}
+                  {isLocked ? <Lock className="w-4 h-4" /> : String(i + 1).padStart(2, '0')}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground text-sm mb-1 truncate">{section.heading}</h3>
+                  <h3 className="font-semibold text-foreground text-sm mb-1 truncate">
+                    {section.heading}
+                    {isLocked && <span className="ml-2 text-xs text-muted-foreground">(locked)</span>}
+                  </h3>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">{pointCount} step{pointCount !== 1 ? 's' : ''}</span>
                     {hasVideo && (
@@ -137,16 +175,21 @@ export const TrainingModule = () => {
                       </span>
                     )}
                   </div>
+                  {isLocked && (
+                    <p className="tm-lock-message">
+                      🔒 Complete more practice sessions (≥1 min) to unlock this technique.
+                    </p>
+                  )}
                 </div>
 
-                {/* Arrow */}
-                <ArrowRight className="tm-arrow w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                {/* Arrow (only if not locked) */}
+                {!isLocked && <ArrowRight className="tm-arrow w-4 h-4 flex-shrink-0 text-muted-foreground" />}
               </div>
             );
           })}
         </div>
 
-        {/* CTA */}
+        {/* CTA (unchanged) */}
         <div className="mt-12 p-6 rounded-2xl" style={{ background: 'linear-gradient(135deg, #2E4F4F 0%, #1a3333 100%)' }}>
           <h3 className="text-lg font-serif font-medium text-white mb-1">Ready to practice?</h3>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,.6)' }}>

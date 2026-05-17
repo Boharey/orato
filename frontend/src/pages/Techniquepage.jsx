@@ -1,19 +1,28 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, PlayCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft, ArrowRight, PlayCircle, CheckCircle2,
+  ChevronLeft, ChevronRight, Lock
+} from 'lucide-react';
+
+
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
 
-const toSlug = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const toSlug = (str) =>
+  str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-// Split point into title + body if separated by " → "
+
 const parsePoint = (point) => {
   const parts = point.split(' → ');
-  if (parts.length >= 2) return { label: parts[0], body: parts.slice(1).join(' → ') };
+  if (parts.length >= 2)
+    return { label: parts[0], body: parts.slice(1).join(' → ') };
   return { label: null, body: point };
 };
+
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
@@ -76,16 +85,41 @@ export const TechniquePage = () => {
   const [sectionIndex, setSectionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchModule(); }, [moduleId]);
+  // ── Load module and set current section index ──────────────────────────
+  useEffect(() => {
+    if (!module) {
+      fetchModule();
+    } else {
+      const idx = module.sections.findIndex(
+        (s) => toSlug(s.heading) === techniqueSlug
+      );
+      const safeIdx = idx >= 0 ? idx : 0;
+      setSectionIndex(safeIdx);
+
+      // 🔒 Backend protection – redirect locked sections
+      const sec = module.sections[safeIdx];
+      if (sec?.locked) {
+        navigate(`/training/${moduleId}`, { replace: true });
+      }
+      window.scrollTo(0, 0);
+    }
+  }, [moduleId, techniqueSlug, module, navigate]);
 
   const fetchModule = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/training/modules`);
-      const mod = data.modules.find(m => m.id === moduleId);
+      const mod = data.modules.find((m) => m.id === moduleId);
       setModule(mod || null);
       if (mod) {
-        const idx = mod.sections.findIndex(s => toSlug(s.heading) === techniqueSlug);
-        setSectionIndex(idx >= 0 ? idx : 0);
+        const idx = mod.sections.findIndex(
+          (s) => toSlug(s.heading) === techniqueSlug
+        );
+        const safeIdx = idx >= 0 ? idx : 0;
+        setSectionIndex(safeIdx);
+        // Redirect if the initial section is locked
+        if (mod.sections[safeIdx]?.locked) {
+          navigate(`/training/${moduleId}`, { replace: true });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -94,61 +128,143 @@ export const TechniquePage = () => {
     }
   };
 
-  if (loading) return (
-    <Layout>
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-      </div>
-    </Layout>
+  // ── Previous / Next (skip locked sections) ─────────────────────────────
+  const findAdjacentUnlocked = useCallback(
+    (currentIdx, direction) => {
+      if (!module) return null;
+      const sections = module.sections;
+      let idx = currentIdx + direction;
+      while (idx >= 0 && idx < sections.length) {
+        if (!sections[idx].locked) return idx;
+        idx += direction;
+      }
+      return null;
+    },
+    [module]
   );
 
-  if (!module) return (
-    <Layout><div className="p-8 text-muted-foreground">Module not found</div></Layout>
-  );
-
-  const section   = module.sections[sectionIndex];
-  const total     = module.sections.length;
-  const isFirst   = sectionIndex === 0;
-  const isLast    = sectionIndex === total - 1;
-  const prevSlug  = !isFirst ? toSlug(module.sections[sectionIndex - 1].heading) : null;
-  const nextSlug  = !isLast  ? toSlug(module.sections[sectionIndex + 1].heading) : null;
+  const prevUnlockedIdx = findAdjacentUnlocked(sectionIndex, -1);
+  const nextUnlockedIdx = findAdjacentUnlocked(sectionIndex, 1);
 
   const goTo = (slug) => navigate(`/training/${moduleId}/${slug}`);
 
-  // Separate "Why it works" points from regular points
-  const whyPoints   = section.points.filter(p => p.toLowerCase().startsWith('why it works'));
-  const stepsPoints = section.points.filter(p => !p.toLowerCase().startsWith('why it works'));
+  // ── Loading / not‑found states ─────────────────────────────────────────
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!module) {
+    return (
+      <Layout>
+        <div className="p-8 text-muted-foreground">Module not found</div>
+      </Layout>
+    );
+  }
+
+  const section = module.sections[sectionIndex];
+  if (!section) {
+    return (
+      <Layout>
+        <div className="p-8 text-muted-foreground">Technique not found</div>
+      </Layout>
+    );
+  }
+
+  const total = module.sections.length;
+  const isFirst = sectionIndex === 0;
+  const isLast = sectionIndex === total - 1;
+
+  const prevSlug = prevUnlockedIdx != null
+    ? toSlug(module.sections[prevUnlockedIdx].heading)
+    : null;
+  const nextSlug = nextUnlockedIdx != null
+    ? toSlug(module.sections[nextUnlockedIdx].heading)
+    : null;
+
+  // Separate "Why it works" points
+  const whyPoints = section.points.filter((p) =>
+    p.toLowerCase().startsWith('why it works')
+  );
+  const stepsPoints = section.points.filter(
+    (p) => !p.toLowerCase().startsWith('why it works')
+  );
 
   return (
     <Layout>
       <style>{STYLES}</style>
       <div className="p-6 md:p-8 max-w-3xl mx-auto">
-
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-8 tp-enter">
-          <button onClick={() => navigate('/training')} className="hover:text-foreground transition-colors">Training</button>
+          <button
+            onClick={() => navigate('/training')}
+            className="hover:text-foreground transition-colors"
+          >
+            Training
+          </button>
           <ChevronRight className="w-3 h-3" />
-          <button onClick={() => navigate(`/training/${moduleId}`)} className="hover:text-foreground transition-colors truncate max-w-[140px]">
+          <button
+            onClick={() => navigate(`/training/${moduleId}`)}
+            className="hover:text-foreground transition-colors truncate max-w-[140px]"
+          >
             {module.title}
           </button>
           <ChevronRight className="w-3 h-3" />
-          <span className="text-foreground font-medium truncate max-w-[160px]">{section.heading}</span>
+          <span className="text-foreground font-medium truncate max-w-[160px]">
+            {section.heading}
+          </span>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center gap-1.5 mb-8 tp-enter" style={{ animationDelay: '.05s' }}>
-          {module.sections.map((_, i) => (
-            <button key={i} onClick={() => goTo(toSlug(module.sections[i].heading))}
-              className={`tp-progress-dot ${i === sectionIndex ? 'active' : ''}`} />
-          ))}
-          <span className="text-xs text-muted-foreground ml-2">{sectionIndex + 1} / {total}</span>
+        {/* Progress indicator (dots) – locked sections get lock icon */}
+        <div
+          className="flex items-center gap-1.5 mb-8 tp-enter"
+          style={{ animationDelay: '.05s' }}
+        >
+          {module.sections.map((_, i) => {
+            const isLocked = module.sections[i].locked;
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  if (!isLocked) goTo(toSlug(module.sections[i].heading));
+                }}
+                disabled={isLocked}
+                className={`tp-progress-dot ${
+                  i === sectionIndex ? 'active' : ''
+                } ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                title={
+                  isLocked
+                    ? 'Locked – complete more practice sessions to unlock'
+                    : module.sections[i].heading
+                }
+              >
+                {isLocked && i === sectionIndex ? (
+                  <Lock className="w-3 h-3 text-red-500" />
+                ) : null}
+              </button>
+            );
+          })}
+          <span className="text-xs text-muted-foreground ml-2">
+            {sectionIndex + 1} / {total}
+          </span>
         </div>
 
         {/* Heading */}
         <div className="mb-8 tp-enter" style={{ animationDelay: '.1s' }}>
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full"
-              style={{ background: sectionIndex % 2 === 0 ? '#2E4F4F12' : '#FF6B3512', color: sectionIndex % 2 === 0 ? '#2E4F4F' : '#FF6B35' }}>
+            <span
+              className="text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full"
+              style={{
+                background:
+                  sectionIndex % 2 === 0 ? '#2E4F4F12' : '#FF6B3512',
+                color: sectionIndex % 2 === 0 ? '#2E4F4F' : '#FF6B35',
+              }}
+            >
               Technique {String(sectionIndex + 1).padStart(2, '0')}
             </span>
           </div>
@@ -163,7 +279,9 @@ export const TechniquePage = () => {
           <div className="mb-8 tp-img-in">
             <div className="flex items-center gap-2 mb-3">
               <PlayCircle className="w-4 h-4" style={{ color: '#FF6B35' }} />
-              <span className="text-sm font-semibold text-foreground">Video Lesson</span>
+              <span className="text-sm font-semibold text-foreground">
+                Video Lesson
+              </span>
             </div>
             <div className="tp-video-wrap aspect-video">
               <iframe
@@ -180,24 +298,47 @@ export const TechniquePage = () => {
 
         {/* Steps */}
         {stepsPoints.length > 0 && (
-          <div className="mb-8 tp-enter" style={{ animationDelay: '.2s' }}>
-            <h2 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">How to Practice</h2>
+          <div
+            className="mb-8 tp-enter"
+            style={{ animationDelay: '.2s' }}
+          >
+            <h2 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">
+              How to Practice
+            </h2>
             <div className="space-y-3">
               {stepsPoints.map((point, i) => {
                 const { label, body } = parsePoint(point);
                 return (
-                  <div key={i} className="tp-step" style={{ animationDelay: `${.2 + i * .06}s` }}>
-                    <div className="tp-step-num" style={{
-                      background: sectionIndex % 2 === 0 ? '#2E4F4F12' : '#FF6B3512',
-                      color: sectionIndex % 2 === 0 ? '#2E4F4F' : '#FF6B35'
-                    }}>
+                  <div
+                    key={i}
+                    className="tp-step"
+                    style={{ animationDelay: `${0.2 + i * 0.06}s` }}
+                  >
+                    <div
+                      className="tp-step-num"
+                      style={{
+                        background:
+                          sectionIndex % 2 === 0 ? '#2E4F4F12' : '#FF6B3512',
+                        color:
+                          sectionIndex % 2 === 0 ? '#2E4F4F' : '#FF6B35',
+                      }}
+                    >
                       {i + 1}
                     </div>
                     <div className="flex-1">
-                      {label && <p className="text-xs font-bold text-foreground mb-0.5">{label}</p>}
-                      <p className="text-sm text-foreground leading-relaxed">{body}</p>
+                      {label && (
+                        <p className="text-xs font-bold text-foreground mb-0.5">
+                          {label}
+                        </p>
+                      )}
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {body}
+                      </p>
                     </div>
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#E2E4DE' }} />
+                    <CheckCircle2
+                      className="w-4 h-4 flex-shrink-0 mt-0.5"
+                      style={{ color: '#E2E4DE' }}
+                    />
                   </div>
                 );
               })}
@@ -209,8 +350,15 @@ export const TechniquePage = () => {
         {whyPoints.map((point, i) => {
           const { body } = parsePoint(point);
           return (
-            <div key={i} className="tp-why-block mb-8 tp-enter" style={{ animationDelay: '.35s' }}>
-              <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#FF6B35' }}>
+            <div
+              key={i}
+              className="tp-why-block mb-8 tp-enter"
+              style={{ animationDelay: '.35s' }}
+            >
+              <p
+                className="text-xs font-bold tracking-widest uppercase mb-2"
+                style={{ color: '#FF6B35' }}
+              >
                 Why It Works
               </p>
               <p className="text-sm text-foreground leading-relaxed">{body}</p>
@@ -219,25 +367,34 @@ export const TechniquePage = () => {
         })}
 
         {/* Prev / Next navigation */}
-        <div className="flex items-center justify-between pt-6 border-t border-border mt-8 tp-enter" style={{ animationDelay: '.4s' }}>
+        <div
+          className="flex items-center justify-between pt-6 border-t border-border mt-8 tp-enter"
+          style={{ animationDelay: '.4s' }}
+        >
           <button
             className="tp-nav-btn"
-            disabled={isFirst}
+            disabled={prevUnlockedIdx == null}
             onClick={() => prevSlug && goTo(prevSlug)}
           >
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
 
-          <button onClick={() => navigate(`/training/${moduleId}`)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={() => navigate(`/training/${moduleId}`)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             All techniques
           </button>
 
-          {isLast ? (
+          {nextUnlockedIdx == null ? (
             <button
               className="tp-nav-btn"
-              style={{ background: '#2E4F4F', color: '#fff', borderColor: '#2E4F4F' }}
+              style={{
+                background: '#2E4F4F',
+                color: '#fff',
+                borderColor: '#2E4F4F',
+              }}
               onClick={() => navigate('/evaluation')}
             >
               Practice Now <ArrowRight className="w-4 h-4" />
@@ -251,7 +408,6 @@ export const TechniquePage = () => {
             </button>
           )}
         </div>
-
       </div>
     </Layout>
   );

@@ -88,3 +88,5 @@ uv.lock
 *.weights
 backend/app/models/face_landmarker.task
 backend/scripts
+backend/static
+backend/static/annotated/

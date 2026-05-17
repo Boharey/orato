@@ -276,6 +276,65 @@ const AnimatedMetricRow = ({ label, value, unit, grade, barPct, delay = 0, feedb
   );
 };
 
+// Drop-in replacement for AnnotatedVideoPlayer in Evaluation.jsx
+// Fixes:
+// 1. Shows error state if video fails to load (CORS / path issue visible to user)
+// 2. Logs full URL so you can verify it in browser console
+// 3. Uses REACT_APP_BACKEND_URL correctly — no double-slash
+
+const AnnotatedVideoPlayer = ({ src }) => {
+  const [error, setError] = React.useState(false);
+
+  // REACT_APP_BACKEND_URL should be "http://localhost:8000" (no trailing slash)
+  // src comes from backend as "/static/annotated/uid.mp4"
+  const API_BASE = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
+  const fullUrl  = `${API_BASE}${src}`;
+
+  console.log('[AnnotatedVideoPlayer] loading:', fullUrl);
+
+  if (error) {
+    return (
+      <div className="absolute inset-0 z-10 bg-black rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-3">
+        <p className="text-white text-sm font-medium">Annotated video failed to load</p>
+        <p className="text-white/50 text-xs px-6 text-center">{fullUrl}</p>
+        <a
+          href={fullUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs px-3 py-1.5 rounded-lg text-white"
+          style={{ background: 'rgba(255,107,53,0.8)' }}
+        >
+          Open directly ↗
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 z-10 bg-black rounded-2xl overflow-hidden">
+      <video
+        src={fullUrl}
+        controls
+        autoPlay={false}
+        className="w-full h-full object-contain"
+        onError={() => {
+          console.error('[AnnotatedVideoPlayer] failed to load:', fullUrl);
+          setError(true);
+        }}
+        onLoadedData={() => {
+          console.log('[AnnotatedVideoPlayer] loaded successfully:', fullUrl);
+        }}
+      />
+      <div
+        className="absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold text-white"
+        style={{ background: 'rgba(46,79,79,0.85)' }}
+      >
+        ✦ Annotated Output
+      </div>
+    </div>
+  );
+};
+
 const VideoControls = ({ videoRef, objectUrlRef, recordedBlob }) => {
   const [playing, setPlaying]   = useState(false);
   const [progress, setProgress] = useState(0);
@@ -771,8 +830,9 @@ export const Evaluation = () => {
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl overflow-hidden aspect-video relative">
               <video ref={videoRef} data-testid="evaluation-video"
-                className="w-full h-full object-cover bg-black" playsInline
-                onError={() => {}} />
+              className="w-full h-full object-cover bg-black" playsInline
+              onError={() => {}}
+              style={{ display: results?.video_data ? 'none' : 'block' }} />
               {!recording && !recordedBlob && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted gap-3">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(46,79,79,.1)' }}>
@@ -799,7 +859,10 @@ export const Evaluation = () => {
                 </div>
               )}
               {analyzing && <AnalyzingOverlay fact={currentFact} />}
-              {recordedBlob && !analyzing && (
+              {results?.video_data && !analyzing && (
+                <AnnotatedVideoPlayer src={results.video_data} />
+              )}
+              {recordedBlob && !analyzing && !results?.video_data && (
                 <VideoControls videoRef={videoRef} objectUrlRef={objectUrlRef} recordedBlob={recordedBlob} />
               )}
             </div>
