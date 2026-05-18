@@ -88,17 +88,38 @@ def generate_annotated_video(
             return False
 
         raw_fps = cap.get(cv2.CAP_PROP_FPS)
-        # Browser MediaRecorder sometimes reports 250fps or 0fps — both are wrong.
-        # Clamp to a sane range. 30fps is the safe default for webm recordings.
-        if raw_fps <= 0 or raw_fps > 60:
-            fps = 30.0
-            print(f"[compositor] WARNING: raw fps={raw_fps} → clamped to {fps}")
-        else:
-            fps = raw_fps
-
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        print(f"[compositor] {w}x{h} @ {fps}fps  (raw_fps={raw_fps})")
+
+        # Use ffprobe for accurate FPS — OpenCV misreads webm (reports 250fps)
+        # and can misread mp4 variable-rate files too.
+        try:
+            probe = subprocess.run([
+                "ffprobe", "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=r_frame_rate",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                input_video_path,
+            ], capture_output=True, text=True, timeout=10)
+            rr = probe.stdout.strip()   # e.g. "30/1" or "2997/100"
+            if "/" in rr:
+                num, den = rr.split("/")
+                probe_fps = float(num) / float(den)
+            else:
+                probe_fps = float(rr)
+            # Sanity clamp — anything outside 1–60 is bogus
+            if 1.0 <= probe_fps <= 60.0:
+                fps = probe_fps
+                print(f"[compositor] ffprobe fps  : {fps}  (opencv raw={raw_fps})")
+            else:
+                fps = 30.0
+                print(f"[compositor] ffprobe fps {probe_fps} out of range → clamped to {fps}")
+        except Exception as e:
+            # ffprobe not available or failed — fall back to clamped opencv value
+            fps = raw_fps if 1.0 <= raw_fps <= 60.0 else 30.0
+            print(f"[compositor] ffprobe failed ({e}) → fps={fps}")
+
+        print(f"[compositor] {w}x{h} @ {fps}fps")
 
         # Convert to absolute — ffmpeg uses its own cwd and cannot resolve relative paths
         output_video_path = os.path.abspath(output_video_path)
@@ -245,8 +266,17 @@ def generate_annotated_video(
         if stderr:
             print(f"[compositor] ffmpeg stderr:\n{stderr.decode(errors='replace')}")
 
-        if proc.returncode != 0 or pipe_error:
+        if proc.returncode != 0:
+            print(f"[compositor] ffmpeg FAILED with rc={proc.returncode}")
             return False
+
+        # pipe_error just means ffmpeg stopped accepting frames (e.g. -shortest
+        # cut it when audio ended). If ffmpeg rc=0 the output file is valid.
+        if pipe_error:
+            print(f"[compositor] pipe closed early (normal with -shortest) — checking output")
+            if not os.path.exists(output_video_path) or os.path.getsize(output_video_path) == 0:
+                print(f"[compositor] output file missing or empty — real failure")
+                return False
 
         print(f"[compositor] success → {output_video_path}")
         return True
